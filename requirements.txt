@@ -1,0 +1,2 @@
+# Requirements for Deathroll Game Factory
+# No external dependencies needed for basic version
