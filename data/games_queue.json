@@ -1,16 +1,1 @@
-{
-  "games": [
-    {
-      "genre": "offline-fps",
-      "status": "phase3_done"
-    },
-    {
-      "genre": "soccer-penalty",
-      "status": "pending"
-    },
-    {
-      "genre": "platform-runner",
-      "status": "pending"
-    }
-  ]
-}
+{"games":[{"genre":"offline-fps","status":"pending"}]}
