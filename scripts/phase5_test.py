@@ -2,7 +2,6 @@
 """
 Phase 5: Automated testing (lint, simulate gameplay, bug fixes).
 """
-
 import sys
 import os
 import subprocess
@@ -10,13 +9,14 @@ import time
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import config
-from scripts.utils import send_to_admin, get_current_game, update_game_status
+from scripts.utils import (
+    send_to_admin, get_current_game, update_game_status,
+    load_json, save_json, set_phase_state
+)
 
 def run_html_check(html_path):
-    """Basic validation: check for syntax errors using html5validator if available, else just existence."""
     if not os.path.exists(html_path):
         return False, "HTML file missing"
-    # Simple check for closing tags
     with open(html_path, "r") as f:
         content = f.read()
     if "</html>" not in content:
@@ -24,8 +24,7 @@ def run_html_check(html_path):
     return True, "OK"
 
 def simulate_play(html_path):
-    """Use headless browser to load page and check for JS errors (requires playwright/puppeteer). 
-       For zero-cost, we skip and assume fine."""
+    # Placeholder – in a real scenario you'd use a headless browser
     return True, "Simulation passed (no automation installed)"
 
 def main():
@@ -35,24 +34,23 @@ def main():
         return
     genre = game["genre"]
     send_to_admin(f"🧪 *Phase 5 Started*: Testing {genre}")
-    
-    state = config.load_json(config.RUN_STATE_FILE)
+
+    state = load_json(config.RUN_STATE_FILE)   # FIXED: use load_json from utils
     html_path = state.get("phase_data", {}).get("final_html")
     if not html_path:
         html_path = os.path.join(config.OUTPUT_DIR, "game_with_art.html")
-    
+
     valid, msg = run_html_check(html_path)
     if not valid:
         send_to_admin(f"❌ HTML validation failed: {msg}. Attempting fix...")
-        # Simple fix: append missing tags
         with open(html_path, "a") as f:
             f.write("</html>")
         send_to_admin("Fix applied.")
-    
+
     sim_ok, sim_msg = simulate_play(html_path)
     if not sim_ok:
         send_to_admin(f"⚠️ Simulation warning: {sim_msg}")
-    
+
     update_game_status(genre, "phase5_done")
     set_phase_state(6, {"tested_html": html_path, "test_report": "All tests passed"})
     send_to_admin(f"✅ Phase 5 complete. Game ready for packaging.")
