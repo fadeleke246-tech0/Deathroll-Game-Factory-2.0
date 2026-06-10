@@ -1,9 +1,9 @@
 name: Deathroll Factory Bot
 
 on:
+  workflow_dispatch:
   schedule:
-    - cron: '0 6 * * *'   # Runs daily at 6:00 UTC
-  workflow_dispatch:       # Manual trigger
+    - cron: '0 6 * * *'
 
 jobs:
   build:
@@ -19,16 +19,37 @@ jobs:
       - name: Install dependencies
         run: |
           pip install requests pillow
+          # Also create requirements.txt for future
+          echo "requests\npillow" > requirements.txt
           
-      - name: Determine current phase
+      - name: Create missing files and folders
+        run: |
+          mkdir -p data scripts
+          touch scripts/__init__.py
+          [ -f data/games_queue.json ] || echo '{"games":[{"genre":"offline-fps","status":"pending"}]}' > data/games_queue.json
+          [ -f data/run_state.json ] || echo '{"phase":1,"phase_data":{}}' > data/run_state.json
+          [ -f data/portfolio.json ] || echo '{"games":[]}' > data/portfolio.json
+          
+      - name: Debug - show structure
+        run: |
+          echo "=== Current directory ==="
+          ls -la
+          echo "=== Scripts directory ==="
+          ls -la scripts/ || echo "scripts/ missing"
+          echo "=== Python path ==="
+          python -c "import sys; print(sys.path)"
+          
+      - name: Set PYTHONPATH
+        run: echo "PYTHONPATH=$GITHUB_WORKSPACE" >> $GITHUB_ENV
+        
+      - name: Determine phase
         id: phase
         run: |
           python -c "
 import json, os
+phase = 1
 state_file = 'data/run_state.json'
-if not os.path.exists(state_file):
-    phase = 1
-else:
+if os.path.exists(state_file):
     with open(state_file) as f:
         phase = json.load(f).get('phase', 1)
 print(f'phase={phase}')
@@ -46,10 +67,10 @@ print(f'phase={phase}')
         run: |
           python scripts/phase${{ steps.phase.outputs.phase }}.py
           
-      - name: Commit and push changes (art, plans, builds)
+      - name: Commit and push changes
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/ output/ docs/ || true
-          git diff --staged --quiet || git commit -m "Auto-update from Phase ${{ steps.phase.outputs.phase }}"
+          git add data/ output/ docs/ scripts/__init__.py requirements.txt || true
+          git diff --staged --quiet || git commit -m "Auto-update Phase ${{ steps.phase.outputs.phase }}"
           git push
