@@ -1,57 +1,38 @@
 #!/usr/bin/env python3
-"""
-Phase 3: Build grey-box HTML5 game with basic logic (no art).
-Output: output/greybox/game.html
-"""
-
+"""Phase 3: Build grey-box HTML5 prototype (no art)."""
 import sys
 import os
-import json
-import shutil
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import config
-from scripts.utils import send_to_admin, get_current_game, update_game_status, load_json
+from scripts.utils import (
+    send_to_admin, get_current_game, update_game_status,
+    set_phase_state    # <-- ADD THIS
+)
 
-TEMPLATE = """<!DOCTYPE html>
+GREYBOX_TEMPLATE = """<!DOCTYPE html>
 <html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>{title}</title>
-    <style>
-        body {{ margin: 0; padding: 0; overflow: hidden; touch-action: none; background: #222; }}
-        canvas {{ display: block; margin: auto; background: #333; }}
-        #info {{ position: absolute; top: 10px; left: 10px; color: white; font-family: monospace; }}
-    </style>
+    <style>body{{margin:0;overflow:hidden;background:#222;}} canvas{{display:block;margin:auto;background:#333;}}</style>
 </head>
 <body>
-    <div id="info">Greybox: {genre} | Score: <span id="score">0</span></div>
+    <div style="position:absolute;top:10px;left:10px;color:white;">Score: <span id="score">0</span></div>
     <canvas id="gameCanvas" width="{width}" height="{height}"></canvas>
     <script>
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
-        const scoreSpan = document.getElementById('score');
         let score = 0;
-        
-        // Simple placeholder mechanics for {genre}
         let player = {{ x: canvas.width/2, y: canvas.height-50, size: 30 }};
-        let obstacles = [];
-        
         function update() {{
-            // Add placeholder logic here (movement, collisions)
             ctx.fillStyle = '#444';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillRect(0,0,canvas.width,canvas.height);
             ctx.fillStyle = '#0f0';
-            ctx.fillRect(player.x - player.size/2, player.y - player.size/2, player.size, player.size);
-            ctx.fillStyle = '#f00';
-            for(let obs of obstacles) {{
-                ctx.fillRect(obs.x, obs.y, 20, 20);
-            }}
+            ctx.fillRect(player.x-player.size/2, player.y-player.size/2, player.size, player.size);
             requestAnimationFrame(update);
         }}
-        
-        // Touch/mouse controls
         canvas.addEventListener('touchmove', (e) => {{
             e.preventDefault();
             let rect = canvas.getBoundingClientRect();
@@ -63,23 +44,10 @@ TEMPLATE = """<!DOCTYPE html>
             let mouseX = (e.clientX - rect.left) * (canvas.width/rect.width);
             player.x = Math.min(Math.max(mouseX, 20), canvas.width-20);
         }});
-        
         update();
     </script>
 </body>
 </html>"""
-
-def build_greybox(genre):
-    width, height = 400, 600
-    title = f"Deathroll Studio - {genre} (Greybox)"
-    html = TEMPLATE.format(title=title, genre=genre, width=width, height=height)
-    
-    out_dir = os.path.join(config.OUTPUT_DIR, "greybox")
-    os.makedirs(out_dir, exist_ok=True)
-    out_file = os.path.join(out_dir, "game.html")
-    with open(out_file, "w") as f:
-        f.write(html)
-    return out_file
 
 def main():
     game, _ = get_current_game()
@@ -87,12 +55,16 @@ def main():
         send_to_admin("No active game for Phase 3.")
         return
     genre = game["genre"]
-    send_to_admin(f"🛠️ *Phase 3 Started*: Building greybox for {genre}")
-    
-    greybox_path = build_greybox(genre)
+    send_to_admin(f"🛠️ Phase 3 started: building greybox for {genre}")
+    out_dir = os.path.join(config.OUTPUT_DIR, "greybox")
+    os.makedirs(out_dir, exist_ok=True)
+    html = GREYBOX_TEMPLATE.format(title=f"Deathroll - {genre}", width=400, height=600)
+    greybox_path = os.path.join(out_dir, "game.html")
+    with open(greybox_path, "w") as f:
+        f.write(html)
     update_game_status(genre, "phase3_done")
     set_phase_state(4, {"greybox_path": greybox_path})
-    send_to_admin(f"✅ Greybox ready: {greybox_path}. Moving to Phase 4 (Art & Audio).")
+    send_to_admin("✅ Phase 3 complete. Moving to Phase 4 (art).")
 
 if __name__ == "__main__":
     main()
