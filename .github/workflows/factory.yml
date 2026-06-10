@@ -1,9 +1,9 @@
 name: Deathroll Factory Bot
 
 on:
-  workflow_dispatch:        # This enables the manual "Run workflow" button
+  workflow_dispatch:          # This enables the manual "Run workflow" button
   schedule:
-    - cron: '0 6 * * *'
+    - cron: '0 6 * * *'       # Runs daily at 6:00 UTC
 
 jobs:
   build:
