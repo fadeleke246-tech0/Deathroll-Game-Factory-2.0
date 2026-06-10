@@ -1,7 +1,25 @@
 {
-  "phase": 2,
+  "phase": 3,
   "phase_data": {
-    "genre": "offline-fps",
-    "research_report": "This is a dummy research report for offline-fps. No Gemini used."
+    "plan": {
+      "architecture": "Standard requestAnimationFrame loop",
+      "asset_list": [
+        "player.png",
+        "bg.png",
+        "click.wav"
+      ],
+      "art_prompts": {
+        "player": "pixel art offline-fps character",
+        "background": "simple offline-fps background"
+      },
+      "dependency_map": {
+        "libraries": [],
+        "external": []
+      },
+      "file_structure": {
+        "index.html": "canvas",
+        "game.js": "logic"
+      }
+    }
   }
 }
