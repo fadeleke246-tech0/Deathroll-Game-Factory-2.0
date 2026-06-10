@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deathroll Factory – Admin</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="admin-body">
+    <div class="admin-container">
+        <aside class="sidebar">
+            <h2>🏭 Factory Control</h2>
+            <nav>
+                <button data-tab="queue">📋 Game Queue</button>
+                <button data-tab="phase">⚙️ Phase State</button>
+                <button data-tab="portfolio">🏆 Portfolio</button>
+                <button data-tab="sar">📄 SAR Analysis</button>
+            </nav>
+        </aside>
+        <main class="admin-main">
+            <div id="queue" class="tab-content active">
+                <h3>Pending & Completed Games</h3>
+                <pre id="queue-data">Loading...</pre>
+            </div>
+            <div id="phase" class="tab-content">
+                <h3>Current Run State</h3>
+                <pre id="phase-data">Loading...</pre>
+            </div>
+            <div id="portfolio" class="tab-content">
+                <h3>Shipped Games</h3>
+                <div id="portfolio-grid" class="game-grid"></div>
+            </div>
+            <div id="sar" class="tab-content">
+                <h3>Last SAR Report</h3>
+                <pre id="sar-data">Loading...</pre>
+            </div>
+        </main>
+    </div>
+    <script src="dashboard.js"></script>
+</body>
+</html>
