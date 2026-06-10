@@ -1,0 +1,67 @@
+name: Debug Import & API Path
+
+on: workflow_dispatch
+
+jobs:
+  debug-imports:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: pip install requests pillow
+
+      - name: Create necessary __init__.py files
+        run: |
+          mkdir -p scripts
+          touch scripts/__init__.py
+
+      - name: Check current environment
+        run: |
+          echo "=== Current directory ==="
+          pwd
+          echo "=== Directory structure ==="
+          ls -la
+          echo "=== Python path ==="
+          python -c "import sys; print(sys.path)"
+
+      - name: Attempt Imports and API Key Check
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          echo "=== Python Check Script ==="
+          python -c "
+          import sys, os
+          
+          print('--- 1. sys.path before appending ---')
+          print('\n'.join(sys.path))
+          
+          # Add the repo root to the Python path
+          sys.path.append(os.getcwd())
+          print('--- 2. sys.path after appending ---')
+          print('\n'.join(sys.path))
+          
+          print('--- 3. Attempting Imports ---')
+          try:
+              import config
+              print('✅ SUCCESS: config imported')
+          except ModuleNotFoundError as e:
+              print(f'❌ FAILED: Could not import config. Error: {e}')
+          
+          try:
+              from scripts import utils
+              print('✅ SUCCESS: scripts.utils imported')
+          except ModuleNotFoundError as e:
+              print(f'❌ FAILED: Could not import scripts.utils. Error: {e}')
+          
+          print('--- 4. Gemini API Key Check ---')
+          if os.getenv('GEMINI_API_KEY'):
+              print('✅ SUCCESS: GEMINI_API_KEY is set')
+          else:
+              print('❌ FAILED: GEMINI_API_KEY is missing')
+          "
