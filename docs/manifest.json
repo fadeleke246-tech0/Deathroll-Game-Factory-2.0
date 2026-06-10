@@ -1,0 +1,8 @@
+{
+  "name": "Deathroll Studio Game Factory",
+  "short_name": "Deathroll",
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#0a0f1e",
+  "background_color": "#03060c"
+}
