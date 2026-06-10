@@ -15,6 +15,7 @@ from scripts.utils import (
 )
 
 def create_pwa_files(game_dir, game_title):
+    """Create manifest.json and a simple service worker."""
     manifest = {
         "name": game_title,
         "short_name": game_title[:12],
@@ -34,7 +35,7 @@ self.addEventListener('fetch', e => { e.respondWith(fetch(e.request)); });"""
     with open(os.path.join(game_dir, "sw.js"), "w") as f:
         f.write(sw_js)
 
-    # Generate dummy icon using PIL
+    # Generate a simple icon using PIL (fallback if not available)
     try:
         from PIL import Image, ImageDraw
         img = Image.new('RGB', (192,192), color='green')
@@ -42,7 +43,7 @@ self.addEventListener('fetch', e => { e.respondWith(fetch(e.request)); });"""
         d.text((10,80), "DS", fill='white')
         img.save(os.path.join(game_dir, "icon-192.png"))
     except ImportError:
-        send_to_admin("⚠️ PIL not available, icon not created")
+        send_to_admin("⚠️ PIL not available, skipping icon creation")
 
 def main():
     game, _ = get_current_game()
@@ -50,31 +51,38 @@ def main():
         send_to_admin("No active game for Phase 6.")
         return
     genre = game["genre"]
-    send_to_admin(f"📦 *Phase 6 Started*: Building PWA for {genre}")
+    send_to_admin(f"📦 Phase 6 started: building PWA for {genre}")
 
-    state = load_json(config.RUN_STATE_FILE)   # FIXED
-    html_path = state.get("phase_data", {}).get("tested_html", os.path.join(config.OUTPUT_DIR, "game_with_art.html"))
+    state = load_json(config.RUN_STATE_FILE)
+    html_path = state.get("phase_data", {}).get("tested_html")
+    if not html_path:
+        html_path = os.path.join(config.OUTPUT_DIR, "game_with_art.html")
 
+    # Prepare the docs/ folder (GitHub Pages root)
     pages_dir = os.path.join(config.BASE_DIR, "docs")
     os.makedirs(pages_dir, exist_ok=True)
-    game_slug = genre.replace(" ", "_")
+
+    game_slug = genre.replace(" ", "_").replace("-", "_")
     game_output_dir = os.path.join(pages_dir, game_slug)
     os.makedirs(game_output_dir, exist_ok=True)
 
-    shutil.copy(html_path, os.path.join(game_output_dir, "index.html"))
+    # Copy HTML and assets
+    if os.path.exists(html_path):
+        shutil.copy(html_path, os.path.join(game_output_dir, "index.html"))
     assets_src = os.path.join(config.OUTPUT_DIR, "assets")
     if os.path.exists(assets_src):
         shutil.copytree(assets_src, os.path.join(game_output_dir, "assets"), dirs_exist_ok=True)
 
     create_pwa_files(game_output_dir, f"Deathroll {genre}")
 
+    # Build the public URL
     owner = os.getenv("GITHUB_REPOSITORY_OWNER", "fadeleke246-tech0")
     repo = os.getenv("GITHUB_REPOSITORY", "Deathroll-Game-Factory-2.0").split("/")[-1]
     game_url = f"https://{owner}.github.io/{repo}/{game_slug}/"
 
     update_game_status(genre, "phase6_done", {"game_url": game_url})
     set_phase_state(7, {"game_url": game_url, "local_path": game_output_dir})
-    send_to_admin(f"✅ PWA built at {game_url}. Moving to Phase 7.")
+    send_to_admin(f"✅ PWA built at {game_url}. Moving to Phase 7 (publish).")
 
 if __name__ == "__main__":
     main()
