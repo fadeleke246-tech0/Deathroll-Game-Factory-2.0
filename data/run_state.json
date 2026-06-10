@@ -1,25 +1,6 @@
 {
-  "phase": 3,
+  "phase": 4,
   "phase_data": {
-    "plan": {
-      "architecture": "Standard requestAnimationFrame loop",
-      "asset_list": [
-        "player.png",
-        "bg.png",
-        "click.wav"
-      ],
-      "art_prompts": {
-        "player": "pixel art offline-fps character",
-        "background": "simple offline-fps background"
-      },
-      "dependency_map": {
-        "libraries": [],
-        "external": []
-      },
-      "file_structure": {
-        "index.html": "canvas",
-        "game.js": "logic"
-      }
-    }
+    "greybox_path": "/home/runner/work/Deathroll-Game-Factory-2.0/Deathroll-Game-Factory-2.0/output/greybox/game.html"
   }
 }
