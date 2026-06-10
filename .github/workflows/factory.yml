@@ -1,5 +1,4 @@
 name: Deathroll Factory Bot
-
 on:
   workflow_dispatch:
   schedule:
@@ -10,51 +9,32 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
-          
       - name: Install dependencies
-        run: |
-          pip install requests pillow
-          # Also create requirements.txt for future
-          echo "requests\npillow" > requirements.txt
-          
-      - name: Create missing files and folders
+        run: pip install requests pillow
+      - name: Create missing files
         run: |
           mkdir -p data scripts
           touch scripts/__init__.py
           [ -f data/games_queue.json ] || echo '{"games":[{"genre":"offline-fps","status":"pending"}]}' > data/games_queue.json
           [ -f data/run_state.json ] || echo '{"phase":1,"phase_data":{}}' > data/run_state.json
           [ -f data/portfolio.json ] || echo '{"games":[]}' > data/portfolio.json
-          
-      - name: Debug - show structure
-        run: |
-          echo "=== Current directory ==="
-          ls -la
-          echo "=== Scripts directory ==="
-          ls -la scripts/ || echo "scripts/ missing"
-          echo "=== Python path ==="
-          python -c "import sys; print(sys.path)"
-          
       - name: Set PYTHONPATH
         run: echo "PYTHONPATH=$GITHUB_WORKSPACE" >> $GITHUB_ENV
-        
       - name: Determine phase
         id: phase
         run: |
           python -c "
 import json, os
 phase = 1
-state_file = 'data/run_state.json'
-if os.path.exists(state_file):
-    with open(state_file) as f:
+if os.path.exists('data/run_state.json'):
+    with open('data/run_state.json') as f:
         phase = json.load(f).get('phase', 1)
 print(f'phase={phase}')
 " >> $GITHUB_OUTPUT
-          
       - name: Run Phase ${{ steps.phase.outputs.phase }}
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
@@ -64,13 +44,11 @@ print(f'phase={phase}')
           OPENAI_API_KEY: ${{ secrets.OPENA_API_KEY }}
           HF_API_TOKEN: ${{ secrets.HF_API_TOKEN }}
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
-        run: |
-          python scripts/phase${{ steps.phase.outputs.phase }}.py
-          
-      - name: Commit and push changes
+        run: python scripts/phase${{ steps.phase.outputs.phase }}.py
+      - name: Commit and push
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/ output/ docs/ scripts/__init__.py requirements.txt || true
+          git add data/ output/ docs/ scripts/__init__.py || true
           git diff --staged --quiet || git commit -m "Auto-update Phase ${{ steps.phase.outputs.phase }}"
           git push
