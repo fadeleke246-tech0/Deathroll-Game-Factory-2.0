@@ -5,34 +5,54 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Deathroll Factory – Admin</title>
     <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body class="admin-body">
-    <div class="admin-container">
-        <aside class="sidebar">
-            <h2>🏭 Factory Control</h2>
-            <nav>
-                <button data-tab="queue">📋 Game Queue</button>
-                <button data-tab="phase">⚙️ Phase State</button>
-                <button data-tab="portfolio">🏆 Portfolio</button>
-                <button data-tab="sar">📄 SAR Analysis</button>
+    <div class="admin-wrapper">
+        <aside class="admin-sidebar">
+            <div class="sidebar-logo">🏭 DR FACTORY</div>
+            <nav class="sidebar-nav">
+                <button data-tab="queue" class="active">
+                    <span>📋</span> Game Queue
+                </button>
+                <button data-tab="phase">
+                    <span>⚙️</span> Phase State
+                </button>
+                <button data-tab="portfolio">
+                    <span>🏆</span> Portfolio
+                </button>
+                <button data-tab="sar">
+                    <span>📄</span> Last SAR
+                </button>
             </nav>
+            <div class="sidebar-footer">
+                <a href="index.html" target="_blank">← Back to store</a>
+            </div>
         </aside>
         <main class="admin-main">
             <div id="queue" class="tab-content active">
-                <h3>Pending & Completed Games</h3>
-                <pre id="queue-data">Loading...</pre>
+                <div class="card">
+                    <h3>📋 Game Production Queue</h3>
+                    <pre id="queue-data" class="json-pretty">Loading...</pre>
+                </div>
             </div>
             <div id="phase" class="tab-content">
-                <h3>Current Run State</h3>
-                <pre id="phase-data">Loading...</pre>
+                <div class="card">
+                    <h3>⚙️ Current Run State</h3>
+                    <pre id="phase-data" class="json-pretty">Loading...</pre>
+                </div>
             </div>
             <div id="portfolio" class="tab-content">
-                <h3>Shipped Games</h3>
-                <div id="portfolio-grid" class="game-grid"></div>
+                <div class="card">
+                    <h3>🏆 Shipped Games</h3>
+                    <div id="portfolio-grid" class="game-grid small-grid"></div>
+                </div>
             </div>
             <div id="sar" class="tab-content">
-                <h3>Last SAR Report</h3>
-                <pre id="sar-data">Loading...</pre>
+                <div class="card">
+                    <h3>📄 Last SAR Analysis</h3>
+                    <pre id="sar-data" class="json-pretty">Loading...</pre>
+                </div>
             </div>
         </main>
     </div>
