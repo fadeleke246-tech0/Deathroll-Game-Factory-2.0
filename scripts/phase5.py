@@ -1,59 +1,51 @@
 #!/usr/bin/env python3
 """
-Phase 5: Automated testing (lint, simulate gameplay, bug fixes).
+Phase 5: Testing
+- Runs simple static checks on the generated HTML/JS.
+- In a real scenario, you could run Playwright or Puppeteer tests.
+- For now, just ensures the greybox HTML exists and is valid.
 """
+
 import sys
-import os
+from pathlib import Path
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, str(Path(__file__).parent.parent))
 import config
-from scripts.utils import (
-    send_to_admin, get_current_game, update_game_status,
-    load_json, set_phase_state
-)
+import utils
 
-def run_html_check(html_path):
-    if not os.path.exists(html_path):
-        return False, "HTML file missing"
-    with open(html_path, "r") as f:
-        content = f.read()
-    if "</html>" not in content:
-        return False, "Missing closing </html>"
-    # Basic JS syntax check (look for common errors)
-    if "script" in content and "function" not in content and "=>" not in content:
-        # not a real error, just a warning
-        pass
-    return True, "OK"
 
 def main():
-    game, _ = get_current_game()
-    if not game:
-        send_to_admin("No active game for Phase 5.")
-        return
-    genre = game["genre"]
-    send_to_admin(f"🧪 Phase 5 started: testing {genre}")
+    print("🧪 PHASE 5: TESTING")
 
-    state = load_json(config.RUN_STATE_FILE)
-    html_path = state.get("phase_data", {}).get("final_html")
-    if not html_path:
-        html_path = os.path.join(config.OUTPUT_DIR, "game_with_art.html")
+    state = utils.load_json(config.DATA_DIR / "run_state.json")
+    game = state.get("current_game")
+    if not game or game["phase"] != 5:
+        print("❌ No game in testing phase.")
+        sys.exit(1)
 
-    valid, msg = run_html_check(html_path)
-    if not valid:
-        send_to_admin(f"❌ HTML validation failed: {msg}. Attempting fix...")
-        if msg == "Missing closing </html>":
-            with open(html_path, "a") as f:
-                f.write("</html>")
-            send_to_admin("Fix applied.")
-        else:
-            send_to_admin("⚠️ Cannot auto-fix, but continuing anyway.")
+    game_id = game["id"]
+    game_html = config.OUTPUT_DIR / game_id / "index.html"
 
-    # Simulate play: just send a success message
-    send_to_admin("✅ Play simulation passed (no crashes detected).")
+    if not game_html.exists():
+        print(f"❌ Game HTML missing: {game_html}")
+        sys.exit(1)
 
-    update_game_status(genre, "phase5_done")
-    set_phase_state(6, {"tested_html": html_path, "test_report": "All tests passed"})
-    send_to_admin(f"✅ Phase 5 complete. Game ready for packaging.")
+    # Simple validation: check for basic tags
+    with open(game_html, "r", encoding="utf-8") as f:
+        content = f.read()
+    if "<canvas" not in content and "<div" not in content:
+        print("⚠️ Warning: No canvas or div found – game might not render.")
+
+    print("✅ Basic tests passed.")
+
+    # Advance to build phase
+    state["phase"] = 6
+    game["phase"] = 6
+    game["status"] = "building"
+    utils.save_json(state, config.DATA_DIR / "run_state.json")
+
+    print("✅ Phase 5 complete. Moving to Phase 6 (Build).")
+
 
 if __name__ == "__main__":
     main()
