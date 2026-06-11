@@ -1,3 +1,7 @@
+"""
+Utility functions: LLM calling with fallback, JSON extraction, image generation,
+file I/O, Telegram messaging, and Git operations.
+"""
 import json
 import re
 import time
@@ -12,52 +16,52 @@ from PIL import Image, ImageDraw
 
 import config
 
-# ---------- LLM with fallback ----------
-groq_client = groq.Groq(api_key=config.GROQ_API_KEY) if config.GROQ_API_KEY else None
+# ---------- LLM with fallback (Gemini -> Groq) ----------
+_groq_client = groq.Groq(api_key=config.GROQ_API_KEY) if config.GROQ_API_KEY else None
 
-def call_llm_with_fallback(
-    prompt: str,
-    gemini_model: str = "gemini-1.5-flash",
-    groq_model: str = "mixtral-8x7b-32768",
-    max_retries: int = 2,
-) -> str:
+def call_llm(prompt: str, max_retries: int = config.MAX_RETRIES) -> str:
+    """
+    Try Gemini first, then Groq. Raises exception if all fail.
+    """
     errors = []
     # Gemini
     if config.GEMINI_API_KEY:
         for attempt in range(max_retries):
             try:
                 genai.configure(api_key=config.GEMINI_API_KEY)
-                model = genai.GenerativeModel(gemini_model)
+                model = genai.GenerativeModel("gemini-1.5-flash")
                 response = model.generate_content(prompt)
                 return response.text
             except Exception as e:
                 errors.append(f"Gemini attempt {attempt+1}: {e}")
-                time.sleep(2)
+                time.sleep(config.RETRY_DELAY_SECONDS)
     else:
-        errors.append("Gemini key missing")
+        errors.append("Gemini API key missing")
     # Groq
-    if groq_client:
+    if _groq_client:
         for attempt in range(max_retries):
             try:
-                completion = groq_client.chat.completions.create(
-                    model=groq_model,
+                completion = _groq_client.chat.completions.create(
+                    model="mixtral-8x7b-32768",
                     messages=[{"role": "user", "content": prompt}],
                     temperature=0.5,
                 )
                 return completion.choices[0].message.content
             except Exception as e:
                 errors.append(f"Groq attempt {attempt+1}: {e}")
-                time.sleep(2)
+                time.sleep(config.RETRY_DELAY_SECONDS)
     else:
-        errors.append("Groq key missing")
-    raise Exception(f"All LLMs failed:\n" + "\n".join(errors))
+        errors.append("Groq API key missing")
+    raise Exception(f"All LLM providers failed:\n" + "\n".join(errors))
 
-# ---------- JSON extraction ----------
 def extract_json_from_text(text: str) -> Optional[Dict]:
-    match = re.search(r"```json\s*(\{.*?\})\s*```", text, re.DOTALL)
+    """Extract the first valid JSON object from LLM response."""
+    # Remove markdown code blocks
+    match = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", text, re.DOTALL)
     if match:
         text = match.group(1)
     else:
+        # Find first { and last }
         start = text.find("{")
         end = text.rfind("}")
         if start != -1 and end != -1:
@@ -71,17 +75,18 @@ def extract_json_from_text(text: str) -> Optional[Dict]:
 
 # ---------- Image generation ----------
 def generate_image(prompt: str, output_path: Path) -> bool:
+    """Generate image using Pollinations.ai, fallback to PIL."""
     try:
         encoded = requests.utils.quote(prompt)
-        url = f"https://image.pollinations.ai/prompt/{encoded}?width=512&height=512"
+        url = f"https://image.pollinations.ai/prompt/{encoded}?width=1024&height=1024"
         resp = requests.get(url, timeout=30)
         if resp.status_code == 200:
             output_path.parent.mkdir(parents=True, exist_ok=True)
             output_path.write_bytes(resp.content)
             return True
-    except Exception:
-        pass
-    # Fallback coloured image
+    except Exception as e:
+        print(f"Pollinations error: {e}")
+    # Fallback: coloured rectangle with text
     img = Image.new("RGB", (512,512), color="#2c3e50")
     draw = ImageDraw.Draw(img)
     draw.text((256,256), prompt[:50], fill="white", anchor="mm")
@@ -93,17 +98,30 @@ def load_json(path: Path) -> Dict:
     if not path.exists():
         return {}
     try:
-        return json.loads(path.read_text())
+        return json.loads(path.read_text(encoding="utf-8"))
     except:
         return {}
 
 def save_json(data: Any, path: Path) -> bool:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(data, indent=2))
+    path.write_text(json.dumps(data, indent=2), encoding="utf-8")
     return True
 
 # ---------- Git ----------
-def commit_and_push(message: str, paths: List[str]):
+def commit_and_push(message: str, paths: List[str]) -> None:
+    """Add, commit, and push changes."""
     subprocess.run(["git", "add"] + paths, check=False)
     subprocess.run(["git", "commit", "-m", message], check=False)
     subprocess.run(["git", "push"], check=False)
+
+# ---------- Telegram ----------
+def send_telegram_message(text: str) -> bool:
+    if not config.TELEGRAM_BOT_TOKEN:
+        return False
+    url = f"https://api.telegram.org/bot{config.TELEGRAM_BOT_TOKEN}/sendMessage"
+    payload = {"chat_id": config.TELEGRAM_CHANNEL, "text": text, "parse_mode": "Markdown"}
+    try:
+        r = requests.post(url, json=payload, timeout=10)
+        return r.status_code == 200
+    except:
+        return False
