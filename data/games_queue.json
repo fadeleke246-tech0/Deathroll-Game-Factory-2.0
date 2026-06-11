@@ -1,1 +1,8 @@
-{"games":[{"genre":"offline-fps","status":"pending"}]}
+{
+  "games": [
+    {
+      "genre": "offline-fps",
+      "status": "phase1_done"
+    }
+  ]
+}
