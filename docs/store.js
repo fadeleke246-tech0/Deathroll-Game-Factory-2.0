@@ -1,6 +1,6 @@
 // docs/store.js – Loads games from portfolio.json and displays them
 async function loadGames() {
-    const response = await fetch('https://raw.githubusercontent.com/YOUR_USERNAME/Deathroll-Game-Factory-2.0/main/data/portfolio.json');
+    const response = await fetch('https://raw.githubusercontent.com/fadeleke246-tech0/Deathroll-Game-Factory-2.0/main/data/portfolio.json');
     const games = await response.json();
     const container = document.getElementById('game-grid');
     container.innerHTML = '';
