@@ -15,8 +15,8 @@ jobs:
         with:
           python-version: '3.11'
       - name: Install dependencies
-        run: pip install google-generativeai groq pillow requests openai
-      - name: Get phase
+        run: pip install google-generativeai groq pillow requests
+      - name: Get current phase
         id: phase
         run: |
           PHASE=$(python -c "import json; f=open('data/run_state.json'); d=json.load(f); print(d.get('phase',1))" 2>/dev/null || echo "1")
@@ -50,11 +50,11 @@ jobs:
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
         run: python scripts/phase7.py
-      - name: Commit
+      - name: Commit and push all changes
         if: always()
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/ docs/ output/ || true
-          git diff --staged --quiet || git commit -m "Auto-update phase ${{ steps.phase.outputs.phase }}"
+          git add data/ docs/ output/ scripts/ || true
+          git diff --staged --quiet || git commit -m "Auto-update after phase ${{ steps.phase.outputs.phase }}"
           git push
