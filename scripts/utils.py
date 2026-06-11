@@ -1,6 +1,6 @@
 """
-Utility functions: LLM calling with fallback, JSON extraction, image generation,
-file I/O, Telegram messaging, and Git operations.
+Utility functions: LLM calling with fallback (Gemini -> Groq), JSON extraction,
+image generation, file I/O, Telegram messaging, and Git operations.
 """
 import json
 import re
@@ -19,6 +19,10 @@ import config
 # ---------- LLM with fallback (Gemini -> Groq) ----------
 _groq_client = groq.Groq(api_key=config.GROQ_API_KEY) if config.GROQ_API_KEY else None
 
+# Updated working models
+GEMINI_MODEL = "gemini-2.0-flash-lite"       # Free tier, actively supported
+GROQ_MODEL = "llama-3.1-8b-instant"          # Fast, free, high rate limits
+
 def call_llm(prompt: str, max_retries: int = config.MAX_RETRIES) -> str:
     """
     Try Gemini first, then Groq. Raises exception if all fail.
@@ -29,7 +33,7 @@ def call_llm(prompt: str, max_retries: int = config.MAX_RETRIES) -> str:
         for attempt in range(max_retries):
             try:
                 genai.configure(api_key=config.GEMINI_API_KEY)
-                model = genai.GenerativeModel("gemini-1.5-flash")
+                model = genai.GenerativeModel(GEMINI_MODEL)
                 response = model.generate_content(prompt)
                 return response.text
             except Exception as e:
@@ -42,7 +46,7 @@ def call_llm(prompt: str, max_retries: int = config.MAX_RETRIES) -> str:
         for attempt in range(max_retries):
             try:
                 completion = _groq_client.chat.completions.create(
-                    model="mixtral-8x7b-32768",
+                    model=GROQ_MODEL,
                     messages=[{"role": "user", "content": prompt}],
                     temperature=0.5,
                 )
@@ -54,6 +58,7 @@ def call_llm(prompt: str, max_retries: int = config.MAX_RETRIES) -> str:
         errors.append("Groq API key missing")
     raise Exception(f"All LLM providers failed:\n" + "\n".join(errors))
 
+# ---------- JSON extraction ----------
 def extract_json_from_text(text: str) -> Optional[Dict]:
     """Extract the first valid JSON object from LLM response."""
     # Remove markdown code blocks
