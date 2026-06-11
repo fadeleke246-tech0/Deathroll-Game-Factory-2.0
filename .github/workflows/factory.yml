@@ -1,12 +1,12 @@
 name: Deathroll Game Factory
 on:
-  workflow_dispatch:
+  workflow_dispatch:          # manual trigger (runs current phase)
   schedule:
-    - cron: '0 */12 * * *'
+    - cron: '0 6 * * *'       # daily at 06:00 UTC (runs current phase)
 permissions:
   contents: write
 jobs:
-  build-game:
+  run-phase:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -15,43 +15,20 @@ jobs:
         with:
           python-version: '3.11'
       - name: Install dependencies
-        run: |
-          pip install google-genai groq pillow requests
+        run: pip install google-genai groq pillow requests
       - name: Get current phase
         id: phase
         run: |
           PHASE=$(python -c "import json; f=open('data/run_state.json'); d=json.load(f); print(d.get('phase',1))" 2>/dev/null || echo "1")
           echo "phase=$PHASE" >> $GITHUB_OUTPUT
-      - name: Phase 1 (Research)
-        if: steps.phase.outputs.phase == '1'
+      - name: Run Phase ${{ steps.phase.outputs.phase }}
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
-        run: python scripts/phase1.py
-      - name: Phase 2 (Plan)
-        if: steps.phase.outputs.phase == '2'
-        env:
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
-        run: python scripts/phase2.py
-      - name: Phase 3 (Greybox)
-        if: steps.phase.outputs.phase == '3'
-        run: python scripts/phase3.py
-      - name: Phase 4 (Art)
-        if: steps.phase.outputs.phase == '4'
-        run: python scripts/phase4.py
-      - name: Phase 5 (Testing)
-        if: steps.phase.outputs.phase == '5'
-        run: python scripts/phase5.py
-      - name: Phase 6 (Build)
-        if: steps.phase.outputs.phase == '6'
-        run: python scripts/phase6.py
-      - name: Phase 7 (Publish)
-        if: steps.phase.outputs.phase == '7'
-        env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-        run: python scripts/phase7.py
-      - name: Commit and push changes
+          TELEGRAM_ADMIN_CHAT_ID: ${{ secrets.TELEGRAM_ADMIN_CHAT_ID }}
+        run: python scripts/phase${{ steps.phase.outputs.phase }}.py
+      - name: Commit and push state changes
         if: always()
         run: |
           git config user.name "github-actions[bot]"
