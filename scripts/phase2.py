@@ -1,96 +1,90 @@
 #!/usr/bin/env python3
-"""Phase 2: Generate game plan (architecture, asset list, art prompts, and a catchy title)."""
+"""
+Phase 2: Plan
+- Uses Gemini to generate a detailed game_plan.json:
+  mechanics, controls, assets needed, HTML/CSS/JS structure.
+- Saves the plan inside output/<game_id>/game_plan.json
+"""
+
 import sys
-import os
 import json
-import time
-import re
-import requests
+from pathlib import Path
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, str(Path(__file__).parent.parent))
 import config
-from scripts.utils import send_to_admin, get_current_game, update_game_status, load_json, save_json, set_phase_state
+import utils
+import google.generativeai as genai
 
-GEMINI_MODEL = "gemini-2.5-flash"
-GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent"
-
-def call_gemini(prompt):
-    headers = {
-        "Content-Type": "application/json",
-        "x-goog-api-key": config.GEMINI_API_KEY
-    }
-    payload = {"contents": [{"parts": [{"text": prompt}]}]}
-    try:
-        r = requests.post(GEMINI_URL, headers=headers, json=payload, timeout=60)
-        if r.status_code != 200:
-            return f"HTTP {r.status_code}: {r.text[:200]}"
-        data = r.json()
-        return data["candidates"][0]["content"]["parts"][0]["text"]
-    except Exception as e:
-        return f"Gemini error: {e}"
-
-def extract_json_from_text(text):
-    """Extract the first valid JSON object from text (handles markdown, extra words)."""
-    match = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", text, re.DOTALL)
-    if match:
-        json_str = match.group(1)
-    else:
-        start = text.find('{')
-        end = text.rfind('}')
-        if start != -1 and end != -1 and end > start:
-            json_str = text[start:end+1]
-        else:
-            return None
-    try:
-        return json.loads(json_str)
-    except json.JSONDecodeError as e:
-        send_to_admin(f"⚠️ JSON parse error: {e}\nAttempted string: {json_str[:200]}")
-        return None
-
-def generate_plan(genre, research_report):
-    prompt = f"""Based on this research:
-{research_report}
-
-Create a detailed game plan for a complete HTML5/JS mobile game. Output **only** a valid JSON object with these keys:
-{{
-  "game_title": "A catchy, short title for the game (max 30 chars, e.g., 'Urban Warfare')",
-  "architecture": "brief description of code structure",
-  "asset_list": ["sprite1.png", ...],
-  "art_prompts": {{"background":"prompt", "player":"prompt", "enemy":"prompt", "ui_button":"prompt"}},
-  "dependency_map": {{"libraries":[], "external":[]}},
-  "file_structure": {{"index.html":"main", "game.js":"logic", "style.css":"styles"}}
-}}
-No text outside JSON."""
-    response = call_gemini(prompt)
-    send_to_admin(f"Raw Gemini response (first 300 chars):\n{response[:300]}")
-    plan = extract_json_from_text(response)
-    if plan is None:
-        send_to_admin("⚠️ Failed to extract JSON. Using fallback plan.")
-        return {
-            "game_title": genre.replace("-", " ").title(),
-            "architecture": "Standard requestAnimationFrame loop",
-            "asset_list": ["player.png", "bg.png", "click.wav"],
-            "art_prompts": {"player": f"pixel art {genre} character", "background": f"simple {genre} background"},
-            "dependency_map": {"libraries": [], "external": []},
-            "file_structure": {"index.html": "canvas", "game.js": "logic"}
-        }
-    return plan
 
 def main():
-    game, _ = get_current_game()
-    if not game:
-        send_to_admin("No active game in Phase 2.")
-        return
+    print("📐 PHASE 2: PLAN")
+
+    state = utils.load_json(config.DATA_DIR / "run_state.json")
+    game = state.get("current_game")
+    if not game or game["phase"] != 2:
+        print("❌ No game in planning phase.")
+        sys.exit(1)
+
+    game_id = game["id"]
     genre = game["genre"]
-    sar = load_json(config.SAR_FILE)
-    research = sar.get("report", "")
-    send_to_admin(f"📐 Phase 2 started: planning {genre}")
-    plan = generate_plan(genre, research)
-    plan_file = os.path.join(config.DATA_DIR, "game_plan.json")
-    save_json(plan_file, plan)
-    update_game_status(genre, "phase2_done")
-    set_phase_state(3, {"plan": plan})
-    send_to_admin("✅ Phase 2 complete. Moving to Phase 3.")
+    title = game["title"]
+    concept = game["concept"]
+
+    # Create output folder for this game
+    game_output_dir = config.OUTPUT_DIR / game_id
+    game_output_dir.mkdir(parents=True, exist_ok=True)
+
+    # 1. Generate plan using Gemini
+    if not config.GEMINI_API_KEY:
+        print("❌ GEMINI_API_KEY not set.")
+        sys.exit(1)
+    genai.configure(api_key=config.GEMINI_API_KEY)
+    model = genai.GenerativeModel("gemini-2.0-flash")
+
+    prompt = f"""
+    You are a game designer. Create a detailed technical plan for a {genre} game titled "{title}".
+    Concept: {concept}
+
+    Output a JSON object with the following structure:
+    {{
+        "mechanics": "Description of core game loop and rules",
+        "controls": "Keyboard/mouse/touch controls",
+        "assets": {{
+            "images": ["list of required image filenames"],
+            "sounds": ["list of sound filenames (optional)"]
+        }},
+        "structure": {{
+            "html_elements": ["main canvas", "UI divs"],
+            "javascript_modules": ["game logic", "input handler", "renderer"]
+        }},
+        "victory_condition": "How the player wins",
+        "difficulty_curve": "How difficulty scales"
+    }}
+    """
+    response = model.generate_content(prompt)
+    plan = utils.extract_json_from_text(response.text)
+    if not plan:
+        print("❌ Failed to generate plan.")
+        sys.exit(1)
+
+    # 2. Save plan
+    plan_path = game_output_dir / "game_plan.json"
+    utils.save_json(plan, plan_path)
+    print(f"✅ Plan saved to {plan_path}")
+
+    # 3. Update state and queue
+    queue = utils.load_json(config.DATA_DIR / "games_queue.json")
+    if game_id in queue:
+        queue[game_id]["plan"] = plan_path.name
+        utils.save_json(queue, config.DATA_DIR / "games_queue.json")
+
+    state["phase"] = 3
+    game["phase"] = 3
+    game["status"] = "greybox"
+    utils.save_json(state, config.DATA_DIR / "run_state.json")
+
+    print("✅ Phase 2 complete. Moving to Phase 3 (Greybox).")
+
 
 if __name__ == "__main__":
     main()
