@@ -5,6 +5,8 @@ on:
     - cron: '0 6 * * *'
 jobs:
   build:
+    permissions:
+      contents: write    # 👈 allows git commit & push
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -18,7 +20,7 @@ jobs:
         run: |
           mkdir -p data scripts
           touch scripts/__init__.py
-          [ -f data/games_queue.json ] || echo '{"games":[{"genre":"offline-fps","status":"pending"}]}' > data/games_queue.json
+          [ -f data/games_queue.json ] || echo '{"games":[{"genre":"local-warfare","status":"pending"}]}' > data/games_queue.json
           [ -f data/run_state.json ] || echo '{"phase":1,"phase_data":{}}' > data/run_state.json
           [ -f data/portfolio.json ] || echo '{"games":[]}' > data/portfolio.json
       - name: Set PYTHONPATH
@@ -26,8 +28,12 @@ jobs:
       - name: Get current phase
         id: phase
         run: |
-          chmod +x scripts/get_phase.sh
-          scripts/get_phase.sh >> $GITHUB_OUTPUT
+          chmod +x scripts/get_phase.sh 2>/dev/null || true
+          if [ -f scripts/get_phase.sh ]; then
+            scripts/get_phase.sh >> $GITHUB_OUTPUT
+          else
+            python -c "import json; f=open('data/run_state.json'); d=json.load(f); print(f'phase={d.get(\"phase\",1)}')" >> $GITHUB_OUTPUT
+          fi
       - name: Run phase
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
@@ -38,7 +44,7 @@ jobs:
           HF_API_TOKEN: ${{ secrets.HF_API_TOKEN }}
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: python scripts/phase${{ steps.phase.outputs.phase }}.py
-      - name: Commit results
+      - name: Commit and push changes
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
