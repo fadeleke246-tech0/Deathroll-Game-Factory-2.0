@@ -15,46 +15,47 @@ jobs:
         with:
           python-version: '3.11'
       - name: Install dependencies
-        run: pip install google-generativeai groq pillow requests
+        run: |
+          pip install google-genai groq pillow requests
       - name: Get current phase
         id: phase
         run: |
           PHASE=$(python -c "import json; f=open('data/run_state.json'); d=json.load(f); print(d.get('phase',1))" 2>/dev/null || echo "1")
           echo "phase=$PHASE" >> $GITHUB_OUTPUT
-      - name: Phase 1
+      - name: Phase 1 (Research)
         if: steps.phase.outputs.phase == '1'
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
         run: python scripts/phase1.py
-      - name: Phase 2
+      - name: Phase 2 (Plan)
         if: steps.phase.outputs.phase == '2'
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
         run: python scripts/phase2.py
-      - name: Phase 3
+      - name: Phase 3 (Greybox)
         if: steps.phase.outputs.phase == '3'
         run: python scripts/phase3.py
-      - name: Phase 4
+      - name: Phase 4 (Art)
         if: steps.phase.outputs.phase == '4'
         run: python scripts/phase4.py
-      - name: Phase 5
+      - name: Phase 5 (Testing)
         if: steps.phase.outputs.phase == '5'
         run: python scripts/phase5.py
-      - name: Phase 6
+      - name: Phase 6 (Build)
         if: steps.phase.outputs.phase == '6'
         run: python scripts/phase6.py
-      - name: Phase 7
+      - name: Phase 7 (Publish)
         if: steps.phase.outputs.phase == '7'
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
         run: python scripts/phase7.py
-      - name: Commit and push all changes
+      - name: Commit and push changes
         if: always()
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/ docs/ output/ scripts/ || true
+          git add data/ docs/ output/ || true
           git diff --staged --quiet || git commit -m "Auto-update after phase ${{ steps.phase.outputs.phase }}"
           git push
