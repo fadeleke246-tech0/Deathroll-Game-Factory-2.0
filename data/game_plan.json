@@ -1,0 +1,48 @@
+{
+  "game_title": "Polygon Blast",
+  "architecture": "A modular JavaScript structure built upon the Three.js WebGL framework. The core game loop, scene management, and rendering logic reside in `game.js`, orchestrating separate modules for player mechanics, enemy AI, level generation, UI, input handling, and asset loading. Performance optimization for mobile (low-poly models, efficient draw calls) is paramount. Service Workers will be utilized for comprehensive offline caching of all game assets.",
+  "asset_list": [
+    "models/weapon_pistol.glb",
+    "models/enemy_robot.glb",
+    "models/env_wall.glb",
+    "models/env_floor.glb",
+    "models/env_obstacle_crate.glb",
+    "textures/tex_weapon.webp",
+    "textures/tex_enemy_robot.webp",
+    "textures/tex_env_arena_wall.webp",
+    "textures/tex_env_arena_floor.webp",
+    "textures/tex_env_crate.webp",
+    "ui/crosshair.webp",
+    "ui/health_icon.webp",
+    "ui/ammo_icon.webp",
+    "ui/joystick_base.webp",
+    "ui/joystick_handle.webp",
+    "ui/btn_fire.webp",
+    "audio/sfx_gunshot.ogg",
+    "audio/sfx_hit_enemy.ogg",
+    "audio/sfx_enemy_death.ogg",
+    "audio/sfx_player_footstep.ogg",
+    "audio/music_arena_loop.ogg",
+    "audio/sfx_menu_click.ogg"
+  ],
+  "art_prompts": {
+    "background": "Low-poly sci-fi arena environment, dark metallic walls, glowing grid floor, simple geometric pillars, futuristic atmosphere, for 3D game.",
+    "player": "Low-poly stylized futuristic pistol, sleek design, metallic grey with subtle blue energy accents, for player weapon model.",
+    "enemy": "Low-poly stylized robot enemy, cube-shaped body, single glowing red eye, metallic texture, simple arms, for 3D game enemy model.",
+    "ui_button": "Minimalist sci-fi virtual joystick base, handle, and a separate fire button. Translucent blue glow, sharp edges, white outline, for mobile touch UI."
+  },
+  "dependency_map": {
+    "libraries": [
+      "three.js",
+      "gl-matrix"
+    ],
+    "external": [
+      "Service Workers (for offline capability)"
+    ]
+  },
+  "file_structure": {
+    "index.html": "Main entry point, sets up the canvas and loads necessary scripts.",
+    "game.js": "Contains the core game logic, Three.js scene setup, game loop, and orchestrates other modules (e.g., player, enemy, UI).",
+    "style.css": "Provides styling for the HTML document, canvas, and overlay UI elements."
+  }
+}
