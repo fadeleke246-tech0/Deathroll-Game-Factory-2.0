@@ -33,6 +33,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          mkdir -p data docs output
           git add data/ docs/ output/ || true
           git diff --staged --quiet || git commit -m "Auto-update after phase ${{ steps.phase.outputs.phase }}"
           git push
