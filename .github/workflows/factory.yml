@@ -1,76 +1,60 @@
 name: Deathroll Game Factory
-
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 */6 * * *'
-
+    - cron: '0 */12 * * *'
 permissions:
   contents: write
-
 jobs:
   build-game:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
+      - uses: actions/checkout@v4
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-
       - name: Install dependencies
-        run: |
-          pip install google-generativeai pillow requests
-
-      - name: Get current phase
+        run: pip install google-generativeai groq pillow requests openai
+      - name: Get phase
         id: phase
         run: |
-          PHASE=$(python -c "import json; f=open('data/run_state.json'); d=json.load(f); print(d.get('phase', 1))" 2>/dev/null || echo "1")
+          PHASE=$(python -c "import json; f=open('data/run_state.json'); d=json.load(f); print(d.get('phase',1))" 2>/dev/null || echo "1")
           echo "phase=$PHASE" >> $GITHUB_OUTPUT
-
-      - name: Run Phase 1 (Research)
+      - name: Phase 1
         if: steps.phase.outputs.phase == '1'
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
         run: python scripts/phase1.py
-
-      - name: Run Phase 2 (Plan)
+      - name: Phase 2
         if: steps.phase.outputs.phase == '2'
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
         run: python scripts/phase2.py
-
-      - name: Run Phase 3 (Greybox)
+      - name: Phase 3
         if: steps.phase.outputs.phase == '3'
         run: python scripts/phase3.py
-
-      - name: Run Phase 4 (Art & Audio)
+      - name: Phase 4
         if: steps.phase.outputs.phase == '4'
         run: python scripts/phase4.py
-
-      - name: Run Phase 5 (Testing)
+      - name: Phase 5
         if: steps.phase.outputs.phase == '5'
         run: python scripts/phase5.py
-
-      - name: Run Phase 6 (Build)
+      - name: Phase 6
         if: steps.phase.outputs.phase == '6'
         run: python scripts/phase6.py
-
-      - name: Run Phase 7 (Publish)
+      - name: Phase 7
         if: steps.phase.outputs.phase == '7'
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
         run: python scripts/phase7.py
-
-      - name: Commit and push changes
+      - name: Commit
         if: always()
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add data/ docs/ output/ || true
-          git diff --staged --quiet || git commit -m "Auto-update from factory phase ${{ steps.phase.outputs.phase }}"
+          git diff --staged --quiet || git commit -m "Auto-update phase ${{ steps.phase.outputs.phase }}"
           git push
