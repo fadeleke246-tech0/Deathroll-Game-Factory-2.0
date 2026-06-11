@@ -1,1 +1,10 @@
-
+{
+  "phase": 2,
+  "current_game": {
+    "id": "echo_blast",
+    "title": "Echo Blast",
+    "genre": "shooter",
+    "concept": "In Echo Blast, you control a spherical robot that can absorb and redirect energy blasts to destroy incoming enemies and obstacles, while navigating a futuristic cityscape. As you progress through levels, the city's environment and enemy types change, requiring you to adapt your strategy and reflexes.",
+    "inspiration": "Geometry Dash"
+  }
+}
