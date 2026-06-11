@@ -4,58 +4,270 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Deathroll Factory – Admin</title>
-    <link rel="stylesheet" href="style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,600;14..32,700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: radial-gradient(circle at 10% 20%, #0b0b1a, #03030c);
+            color: #f0f3fa;
+            font-family: 'Inter', sans-serif;
+            padding: 2rem;
+            min-height: 100vh;
+        }
+        .admin-container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        h1 {
+            font-size: 2rem;
+            background: linear-gradient(135deg, #ffb347, #ff6b6b);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            margin-bottom: 0.5rem;
+        }
+        .sub {
+            color: #9aa3bf;
+            margin-bottom: 2rem;
+        }
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 1.5rem;
+        }
+        .card {
+            background: rgba(20, 25, 45, 0.7);
+            backdrop-filter: blur(12px);
+            border-radius: 1.5rem;
+            border: 1px solid rgba(255,255,255,0.08);
+            overflow: hidden;
+            transition: all 0.2s;
+        }
+        .card-header {
+            padding: 1.2rem 1.5rem;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            font-weight: 600;
+            font-size: 1.2rem;
+            background: rgba(0,0,0,0.2);
+        }
+        .card-header span {
+            font-size: 1.3rem;
+            margin-right: 0.5rem;
+        }
+        .card-content {
+            padding: 1.5rem;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        pre {
+            background: #0a0e16;
+            padding: 1rem;
+            border-radius: 1rem;
+            overflow-x: auto;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 0.75rem;
+            color: #e0e0e0;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .game-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+        }
+        .game-item {
+            background: rgba(0,0,0,0.3);
+            border-radius: 1rem;
+            padding: 0.8rem;
+            transition: background 0.2s;
+        }
+        .game-item:hover {
+            background: rgba(255,107,107,0.1);
+        }
+        .game-title {
+            font-weight: 600;
+            color: #ffb347;
+        }
+        .game-url {
+            font-size: 0.7rem;
+            color: #7f89b0;
+            word-break: break-all;
+        }
+        .badge {
+            display: inline-block;
+            background: #ff6b6b20;
+            color: #ffb347;
+            border-radius: 40px;
+            padding: 0.2rem 0.6rem;
+            font-size: 0.7rem;
+            margin-left: 0.5rem;
+        }
+        .refresh-btn {
+            background: #ff6b6b;
+            border: none;
+            color: white;
+            padding: 0.4rem 1rem;
+            border-radius: 30px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            margin-left: 1rem;
+            transition: opacity 0.2s;
+        }
+        .refresh-btn:hover {
+            opacity: 0.8;
+        }
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: #9aa3bf;
+        }
+        footer {
+            text-align: center;
+            margin-top: 3rem;
+            font-size: 0.7rem;
+            color: #4a5570;
+        }
+        @media (max-width: 800px) {
+            body { padding: 1rem; }
+            .dashboard-grid { grid-template-columns: 1fr; }
+        }
+    </style>
 </head>
-<body class="admin-body">
-    <div class="admin-wrapper">
-        <aside class="admin-sidebar">
-            <div class="sidebar-logo">🏭 DR FACTORY</div>
-            <nav class="sidebar-nav">
-                <button data-tab="queue" class="active">
-                    <span>📋</span> Game Queue
-                </button>
-                <button data-tab="phase">
-                    <span>⚙️</span> Phase State
-                </button>
-                <button data-tab="portfolio">
-                    <span>🏆</span> Portfolio
-                </button>
-                <button data-tab="sar">
-                    <span>📄</span> Last SAR
-                </button>
-            </nav>
-            <div class="sidebar-footer">
-                <a href="index.html" target="_blank">← Back to store</a>
-            </div>
-        </aside>
-        <main class="admin-main">
-            <div id="queue" class="tab-content active">
-                <div class="card">
-                    <h3>📋 Game Production Queue</h3>
-                    <pre id="queue-data" class="json-pretty">Loading...</pre>
-                </div>
-            </div>
-            <div id="phase" class="tab-content">
-                <div class="card">
-                    <h3>⚙️ Current Run State</h3>
-                    <pre id="phase-data" class="json-pretty">Loading...</pre>
-                </div>
-            </div>
-            <div id="portfolio" class="tab-content">
-                <div class="card">
-                    <h3>🏆 Shipped Games</h3>
-                    <div id="portfolio-grid" class="game-grid small-grid"></div>
-                </div>
-            </div>
-            <div id="sar" class="tab-content">
-                <div class="card">
-                    <h3>📄 Last SAR Analysis</h3>
-                    <pre id="sar-data" class="json-pretty">Loading...</pre>
-                </div>
-            </div>
-        </main>
+<body>
+<div class="admin-container">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+        <div>
+            <h1>🏭 Deathroll Factory · Admin Panel</h1>
+            <div class="sub">Live status from the autonomous game factory</div>
+        </div>
+        <button class="refresh-btn" onclick="refreshAll()">⟳ Refresh all</button>
     </div>
-    <script src="dashboard.js"></script>
+
+    <div class="dashboard-grid">
+        <!-- Current Phase State -->
+        <div class="card">
+            <div class="card-header"><span>⚙️</span> Current Phase State</div>
+            <div class="card-content">
+                <pre id="phase-state">Loading...</pre>
+            </div>
+        </div>
+
+        <!-- Game Queue -->
+        <div class="card">
+            <div class="card-header"><span>📋</span> Game Queue</div>
+            <div class="card-content">
+                <pre id="queue-state">Loading...</pre>
+            </div>
+        </div>
+
+        <!-- Portfolio (Shipped Games) -->
+        <div class="card">
+            <div class="card-header"><span>🏆</span> Shipped Games</div>
+            <div class="card-content" id="portfolio-list">
+                <div class="loading">Loading games...</div>
+            </div>
+        </div>
+
+        <!-- Last SAR / Quick Info -->
+        <div class="card">
+            <div class="card-header"><span>📄</span> Last SAR Analysis</div>
+            <div class="card-content">
+                <pre id="sar-state">No SAR data yet.</pre>
+            </div>
+        </div>
+    </div>
+    <footer>
+        Data fetched from <code>data/</code> in real time. Games are automatically deployed to GitHub Pages.
+    </footer>
+</div>
+
+<script>
+    const BASE_RAW = 'https://raw.githubusercontent.com/fadeleke246-tech0/Deathroll-Game-Factory-2.0/main/data/';
+
+    async function fetchJSON(file) {
+        const res = await fetch(BASE_RAW + file + '?t=' + Date.now());
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+    }
+
+    async function loadPhaseState() {
+        const el = document.getElementById('phase-state');
+        try {
+            const data = await fetchJSON('run_state.json');
+            el.textContent = JSON.stringify(data, null, 2);
+        } catch (e) {
+            el.textContent = 'Error loading run_state.json\n' + e.message;
+        }
+    }
+
+    async function loadQueueState() {
+        const el = document.getElementById('queue-state');
+        try {
+            const data = await fetchJSON('games_queue.json');
+            el.textContent = JSON.stringify(data, null, 2);
+        } catch (e) {
+            el.textContent = 'Error loading games_queue.json\n' + e.message;
+        }
+    }
+
+    async function loadPortfolio() {
+        const container = document.getElementById('portfolio-list');
+        try {
+            const data = await fetchJSON('portfolio.json');
+            const games = Object.values(data);
+            if (!games.length) {
+                container.innerHTML = '<div class="loading">No games shipped yet.</div>';
+                return;
+            }
+            let html = '<div class="game-list">';
+            games.reverse().forEach(game => {
+                html += `
+                    <div class="game-item">
+                        <div class="game-title">${escapeHtml(game.title || 'Untitled')} <span class="badge">${escapeHtml(game.genre || '?')}</span></div>
+                        <div class="game-url">${escapeHtml(game.game_url || '')}</div>
+                        <div style="font-size:0.75rem; margin-top:0.3rem;">${escapeHtml((game.concept || '').substring(0, 120))}${game.concept?.length > 120 ? '…' : ''}</div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            container.innerHTML = html;
+        } catch (e) {
+            container.innerHTML = `<div class="loading">Error loading portfolio: ${e.message}</div>`;
+        }
+    }
+
+    async function loadSar() {
+        const el = document.getElementById('sar-state');
+        try {
+            const data = await fetchJSON('sar_analysis.json');
+            el.textContent = JSON.stringify(data, null, 2);
+        } catch (e) {
+            el.textContent = 'No SAR analysis found.';
+        }
+    }
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        });
+    }
+
+    async function refreshAll() {
+        document.getElementById('phase-state').textContent = 'Refreshing...';
+        document.getElementById('queue-state').textContent = 'Refreshing...';
+        document.getElementById('portfolio-list').innerHTML = '<div class="loading">Refreshing...</div>';
+        document.getElementById('sar-state').textContent = 'Refreshing...';
+        await Promise.all([loadPhaseState(), loadQueueState(), loadPortfolio(), loadSar()]);
+    }
+
+    // Initial load
+    refreshAll();
+    // Auto-refresh every 60 seconds
+    setInterval(refreshAll, 60000);
+</script>
 </body>
 </html>
