@@ -7,7 +7,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import config
 from scripts.utils import (
     send_to_admin, get_current_game, update_game_status,
-    set_phase_state    # <-- ADD THIS
+    set_phase_state   # <-- MUST be present
 )
 
 GREYBOX_TEMPLATE = """<!DOCTYPE html>
