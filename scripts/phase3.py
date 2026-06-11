@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Phase 3: Auto‑create template folders and files if missing, then copy to output."""
+"""Phase 3: Auto‑create template folders and files, inject game title, copy to output."""
 import sys
 import os
 import json
@@ -7,7 +7,7 @@ import shutil
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import config
-from scripts.utils import send_to_admin, get_current_game, update_game_status, set_phase_state
+from scripts.utils import send_to_admin, get_current_game, update_game_status, set_phase_state, load_json
 
 # ------------------------------------------------------------
 # Embedded default templates for each genre category
@@ -20,7 +20,7 @@ TEMPLATES = {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Local Warfare – Deathroll Studio</title>
+    <title>{{TITLE}} – Deathroll Studio</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { background: #0a0a1a; display: flex; justify-content: center; align-items: center; min-height: 100vh; font-family: monospace; }
@@ -189,7 +189,7 @@ TEMPLATES = {
     },
     "soccer": {
         "assets": ["ball", "goal", "field", "player"],
-        "html": '''<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no"><title>Penalty Kick</title><style>body{background:#0a0a1a;display:flex;justify-content:center;align-items:center;min-height:100vh;font-family:monospace;}</style></head><body><canvas id="gameCanvas" width="400" height="600"></canvas><script>
+        "html": '''<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no"><title>{{TITLE}}</title><style>body{background:#0a0a1a;display:flex;justify-content:center;align-items:center;min-height:100vh;font-family:monospace;}</style></head><body><canvas id="gameCanvas" width="400" height="600"></canvas><script>
 const canvas=document.getElementById('gameCanvas'),ctx=canvas.getContext('2d');
 let score=0,power=0,shooting=false,angle=0,ball={x:200,y:500,r:10},goal={x:120,y:50,w:160,h:80};
 let bgImg=new Image();bgImg.src="assets/field.png";
@@ -211,7 +211,7 @@ draw();
     },
     "racing": {
         "assets": ["car", "road", "obstacle"],
-        "html": '''<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no"><title>Drift Racing</title><style>body{background:#0a0a1a;display:flex;justify-content:center;align-items:center;min-height:100vh;}</style></head><body><canvas id="gameCanvas" width="300" height="500"></canvas><script>
+        "html": '''<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no"><title>{{TITLE}}</title><style>body{background:#0a0a1a;display:flex;justify-content:center;align-items:center;min-height:100vh;}</style></head><body><canvas id="gameCanvas" width="300" height="500"></canvas><script>
 const canvas=document.getElementById('gameCanvas'),ctx=canvas.getContext('2d');
 let player={x:150,y:400,width:30,height:50};
 let obstacles=[],score=0;
@@ -233,7 +233,7 @@ frame();
     },
     "puzzle": {
         "assets": ["tile1","tile2","tile3","background"],
-        "html": '''<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no"><title>Match 3</title><style>body{background:#0a0a1a;display:flex;justify-content:center;align-items:center;min-height:100vh;}</style></head><body><canvas id="gameCanvas" width="400" height="500"></canvas><script>
+        "html": '''<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no"><title>{{TITLE}}</title><style>body{background:#0a0a1a;display:flex;justify-content:center;align-items:center;min-height:100vh;}</style></head><body><canvas id="gameCanvas" width="400" height="500"></canvas><script>
 const canvas=document.getElementById('gameCanvas'),ctx=canvas.getContext('2d');
 let grid=[],score=0,tileSize=50;
 for(let i=0;i<6;i++){grid[i]=[];for(let j=0;j<6;j++)grid[i][j]=Math.floor(Math.random()*3);}
@@ -244,7 +244,7 @@ draw();
     },
     "fighting": {
         "assets": ["fighter1","fighter2","background"],
-        "html": '''<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no"><title>Arcade Fight</title><style>body{background:#0a0a1a;display:flex;justify-content:center;align-items:center;min-height:100vh;}</style></head><body><canvas id="gameCanvas" width="600" height="300"></canvas><script>
+        "html": '''<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no"><title>{{TITLE}}</title><style>body{background:#0a0a1a;display:flex;justify-content:center;align-items:center;min-height:100vh;}</style></head><body><canvas id="gameCanvas" width="600" height="300"></canvas><script>
 const canvas=document.getElementById('gameCanvas'),ctx=canvas.getContext('2d');
 let p1={x:100,y:150,health:100},p2={x:500,y:150,health:100};
 canvas.addEventListener('click',()=>{p2.health-=10;if(p2.health<=0)alert('Player 1 wins!');});
@@ -254,7 +254,7 @@ draw();
     },
     "platformer": {
         "assets": ["player","enemy","platform","background"],
-        "html": '''<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no"><title>Platform Runner</title><style>body{background:#0a0a1a;display:flex;justify-content:center;align-items:center;min-height:100vh;}</style></head><body><canvas id="gameCanvas" width="400" height="500"></canvas><script>
+        "html": '''<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no"><title>{{TITLE}}</title><style>body{background:#0a0a1a;display:flex;justify-content:center;align-items:center;min-height:100vh;}</style></head><body><canvas id="gameCanvas" width="400" height="500"></canvas><script>
 const canvas=document.getElementById('gameCanvas'),ctx=canvas.getContext('2d');
 let player={x:50,y:400,width:30,height:30,vy:0,ground:true};
 let platforms=[{x:0,y:430,w:400,h:20},{x:150,y:350,w:80,h:20},{x:300,y:280,w:80,h:20}];
@@ -281,7 +281,6 @@ frame();
     }
 }
 
-# Mapping from genre keyword to template folder
 GENRE_TO_TEMPLATE = {
     "local-warfare": "shooter", "offline-fps": "shooter", "shooter": "shooter",
     "soccer": "soccer", "penalty": "soccer",
@@ -292,23 +291,19 @@ GENRE_TO_TEMPLATE = {
 }
 
 def ensure_template_folder(template_name):
-    """Create template folder and default files if they don't exist."""
     template_dir = os.path.join(config.TEMPLATES_DIR, template_name)
     os.makedirs(template_dir, exist_ok=True)
-    
     assets_json = os.path.join(template_dir, "assets.json")
     if not os.path.exists(assets_json):
         assets_data = {"assets": TEMPLATES[template_name]["assets"]}
         with open(assets_json, "w") as f:
             json.dump(assets_data, f, indent=2)
         send_to_admin(f"📁 Created {assets_json}")
-    
     html_file = os.path.join(template_dir, "game.html")
     if not os.path.exists(html_file):
         with open(html_file, "w") as f:
             f.write(TEMPLATES[template_name]["html"])
         send_to_admin(f"📁 Created {html_file}")
-    
     return True
 
 def get_template_folder(genre):
@@ -316,7 +311,7 @@ def get_template_folder(genre):
     for key, folder in GENRE_TO_TEMPLATE.items():
         if key in genre_lower:
             return folder
-    return "shooter"  # default
+    return "shooter"
 
 def main():
     game, _ = get_current_game()
@@ -326,23 +321,34 @@ def main():
     genre = game["genre"]
     template_name = get_template_folder(genre)
     send_to_admin(f"🛠️ Phase 3 started: building '{genre}' using template '{template_name}'")
-    
-    # Auto-create template if missing
     ensure_template_folder(template_name)
+    
+    # Load plan to get game title
+    plan = load_json(os.path.join(config.DATA_DIR, "game_plan.json"))
+    game_title = plan.get("game_title", genre.replace("-", " ").title())
+    send_to_admin(f"📝 Game title: {game_title}")
     
     src_template = os.path.join(config.TEMPLATES_DIR, template_name, "game.html")
     dst_dir = os.path.join(config.OUTPUT_DIR, "greybox")
     os.makedirs(dst_dir, exist_ok=True)
     dst_file = os.path.join(dst_dir, "game.html")
-    shutil.copy(src_template, dst_file)
     
-    # Also copy assets.json for phase4
+    # Copy and replace title placeholder
+    with open(src_template, "r") as f:
+        html = f.read()
+    html = html.replace("{{TITLE}}", game_title)
+    # Also replace <title> fallback if needed
+    html = html.replace("<title>Deathroll Studio</title>", f"<title>{game_title}</title>")
+    with open(dst_file, "w") as f:
+        f.write(html)
+    
+    # Copy assets.json for phase4
     assets_json_src = os.path.join(config.TEMPLATES_DIR, template_name, "assets.json")
     if os.path.exists(assets_json_src):
         shutil.copy(assets_json_src, os.path.join(config.DATA_DIR, "current_assets.json"))
     
     update_game_status(genre, "phase3_done")
-    set_phase_state(4, {"greybox_path": dst_file, "template": template_name})
+    set_phase_state(4, {"greybox_path": dst_file, "template": template_name, "game_title": game_title})
     send_to_admin(f"✅ Phase 3 complete. Moving to Phase 4 (art).")
 
 if __name__ == "__main__":
