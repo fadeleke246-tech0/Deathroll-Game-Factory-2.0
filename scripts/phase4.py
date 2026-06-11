@@ -1,72 +1,70 @@
 #!/usr/bin/env python3
 """
-Phase 4: Generate art assets required by the chosen template.
+Phase 4: Art & Audio
+- Generates a promo image using Pollinations.ai (with fallback).
+- Optionally generates placeholder audio (skip for now).
+- Updates portfolio.json and games_queue.json with the public image URL.
 """
-import sys
-import os
-import time
-import json
-import shutil
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).parent.parent))
 import config
-from scripts.utils import (
-    send_to_admin, get_current_game, update_game_status,
-    set_phase_state, load_json, generate_image
-)
+import utils
+
 
 def main():
-    game, _ = get_current_game()
-    if not game:
-        send_to_admin("No active game for Phase 4.")
-        return
-    genre = game["genre"]
-    send_to_admin(f"🎨 Phase 4 started: generating art for {genre}")
+    print("🎨 PHASE 4: ART & AUDIO")
 
-    # 1. Get required asset names from current_assets.json
-    assets_needed = ["player", "background"]
-    assets_json_path = os.path.join(config.DATA_DIR, "current_assets.json")
-    if os.path.exists(assets_json_path):
-        with open(assets_json_path) as f:
-            data = json.load(f)
-            assets_needed = data.get("assets", assets_needed)
-        send_to_admin(f"📋 Required assets: {', '.join(assets_needed)}")
+    state = utils.load_json(config.DATA_DIR / "run_state.json")
+    game = state.get("current_game")
+    if not game or game["phase"] != 4:
+        print("❌ No game in art phase.")
+        sys.exit(1)
+
+    game_id = game["id"]
+    title = game["title"]
+    concept = game["concept"]
+
+    # 1. Generate promo image
+    prompt = f"Promotional image for a {game['genre']} game titled '{title}'. {concept}"
+    # Save directly into docs/ so it's web-accessible
+    promo_local_path = config.DOCS_DIR / f"promo_{game_id}.png"
+    if utils.generate_image(prompt, promo_local_path):
+        # Public URL (GitHub Pages)
+        public_url = f"{config.PUBLIC_BASE_URL}/promo_{game_id}.png"
     else:
-        send_to_admin("⚠️ current_assets.json not found, using default asset list")
+        print("⚠️ Using fallback placeholder URL")
+        public_url = ""  # will be handled by storefront
 
-    # 2. Load plan to get art prompts
-    plan = load_json(os.path.join(config.DATA_DIR, "game_plan.json"))
-    art_prompts = plan.get("art_prompts", {})
-    game_title = plan.get("game_title", genre)
+    # 2. Update portfolio.json
+    portfolio = utils.load_json(config.DATA_DIR / "portfolio.json")
+    portfolio[game_id] = {
+        "title": title,
+        "genre": game["genre"],
+        "concept": concept,
+        "promo": public_url,
+        "game_url": f"{config.PUBLIC_BASE_URL}/{game_id}/index.html",
+        "status": "art_done"
+    }
+    utils.save_json(portfolio, config.DATA_DIR / "portfolio.json")
 
-    assets_dir = os.path.join(config.OUTPUT_DIR, "assets")
-    os.makedirs(assets_dir, exist_ok=True)
+    # 3. Update games_queue.json
+    queue = utils.load_json(config.DATA_DIR / "games_queue.json")
+    if game_id in queue:
+        queue[game_id]["promo_image"] = public_url
+        queue[game_id]["status"] = "art_done"
+        utils.save_json(queue, config.DATA_DIR / "games_queue.json")
 
-    # 3. Generate each image
-    for asset in assets_needed:
-        prompt = art_prompts.get(asset, f"Game art for {asset}, {game_title}, {genre} style, pixel art, mobile game, simple shapes, vibrant")
-        out_path = os.path.join(assets_dir, f"{asset}.png")
-        send_to_admin(f"🎨 Generating {asset}...")
-        success = generate_image(prompt, out_path)
-        if success:
-            send_to_admin(f"✅ {asset} done")
-        else:
-            send_to_admin(f"❌ {asset} failed, using fallback image")
-        time.sleep(2)
+    # 4. Update state
+    state["phase"] = 5
+    game["phase"] = 5
+    game["status"] = "testing"
+    utils.save_json(state, config.DATA_DIR / "run_state.json")
 
-    # 4. Copy greybox to final location
-    greybox_path = os.path.join(config.OUTPUT_DIR, "greybox", "game.html")
-    final_html_path = os.path.join(config.OUTPUT_DIR, "game_with_art.html")
-    if os.path.exists(greybox_path):
-        shutil.copy(greybox_path, final_html_path)
-        send_to_admin("✅ Game HTML updated with art references")
-    else:
-        send_to_admin("⚠️ Greybox not found")
-        final_html_path = greybox_path
+    print("✅ Phase 4 complete. Moving to Phase 5 (Testing).")
 
-    update_game_status(genre, "phase4_done")
-    set_phase_state(5, {"art_dir": assets_dir, "final_html": final_html_path})
-    send_to_admin("✅ Phase 4 complete. Moving to Phase 5 (testing).")
 
 if __name__ == "__main__":
     main()
