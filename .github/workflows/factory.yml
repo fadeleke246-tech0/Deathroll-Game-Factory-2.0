@@ -1,53 +1,76 @@
-name: Deathroll Factory Bot
+name: Deathroll Game Factory
+
 on:
-  workflow_dispatch:
+  workflow_dispatch:        # Manual trigger
   schedule:
-    - cron: '0 6 * * *'
+    - cron: '0 */6 * * *'   # Every 6 hours (optional)
+
+permissions:
+  contents: write           # Needed to push games to docs/
+
 jobs:
-  build:
-    permissions:
-      contents: write    # 👈 allows git commit & push
+  build-game:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
+          python-version: '3.11'
+
       - name: Install dependencies
-        run: pip install requests pillow
-      - name: Create directories and initial files
         run: |
-          mkdir -p data scripts
-          touch scripts/__init__.py
-          [ -f data/games_queue.json ] || echo '{"games":[{"genre":"local-warfare","status":"pending"}]}' > data/games_queue.json
-          [ -f data/run_state.json ] || echo '{"phase":1,"phase_data":{}}' > data/run_state.json
-          [ -f data/portfolio.json ] || echo '{"games":[]}' > data/portfolio.json
-      - name: Set PYTHONPATH
-        run: echo "PYTHONPATH=$GITHUB_WORKSPACE" >> $GITHUB_ENV
+          pip install google-generativeai pillow requests
+
       - name: Get current phase
         id: phase
         run: |
-          chmod +x scripts/get_phase.sh 2>/dev/null || true
-          if [ -f scripts/get_phase.sh ]; then
-            scripts/get_phase.sh >> $GITHUB_OUTPUT
-          else
-            python -c "import json; f=open('data/run_state.json'); d=json.load(f); print(f'phase={d.get(\"phase\",1)}')" >> $GITHUB_OUTPUT
-          fi
-      - name: Run phase
+          PHASE=$(python -c "import json; f=open('data/run_state.json'); d=json.load(f); print(d.get('phase', 1))" 2>/dev/null || echo "1")
+          echo "phase=$PHASE" >> $GITHUB_OUTPUT
+
+      - name: Run Phase 1 (Research)
+        if: steps.phase.outputs.phase == '1'
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: python scripts/phase1_research.py
+
+      - name: Run Phase 2 (Plan)
+        if: steps.phase.outputs.phase == '2'
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: python scripts/phase2_plan.py
+
+      - name: Run Phase 3 (Greybox)
+        if: steps.phase.outputs.phase == '3'
+        run: python scripts/phase3_greybox.py
+
+      - name: Run Phase 4 (Art & Audio)
+        if: steps.phase.outputs.phase == '4'
+        run: python scripts/phase4_art.py
+
+      - name: Run Phase 5 (Testing)
+        if: steps.phase.outputs.phase == '5'
+        run: python scripts/phase5_test.py
+
+      - name: Run Phase 6 (Build)
+        if: steps.phase.outputs.phase == '6'
+        run: python scripts/phase6_build.py
+
+      - name: Run Phase 7 (Publish)
+        if: steps.phase.outputs.phase == '7'
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_ADMIN_CHAT_ID: ${{ secrets.TELEGRAM_ADMIN_CHAT_ID }}
-          TELEGRAM_CHANNEL_ID: ${{ secrets.TELEGRAM_CHANNEL_ID }}
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          OPENAI_API_KEY: ${{ secrets.OPENA_API_KEY }}
-          HF_API_TOKEN: ${{ secrets.HF_API_TOKEN }}
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
-        run: python scripts/phase${{ steps.phase.outputs.phase }}.py
+        run: python scripts/phase7_publish.py
+
       - name: Commit and push changes
+        if: always()
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/ output/ docs/ scripts/__init__.py || true
-          git diff --staged --quiet || git commit -m "Auto-update Phase ${{ steps.phase.outputs.phase }}"
+          git add data/ docs/ output/ || true
+          git diff --staged --quiet || git commit -m "Auto-update from factory phase"
           git push
