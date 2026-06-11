@@ -1,7 +1,7 @@
 {
-  "phase": 5,
+  "phase": 6,
   "phase_data": {
-    "art_dir": "/home/runner/work/Deathroll-Game-Factory-2.0/Deathroll-Game-Factory-2.0/output/assets",
-    "final_html": "/home/runner/work/Deathroll-Game-Factory-2.0/Deathroll-Game-Factory-2.0/output/game_with_art.html"
+    "tested_html": "/home/runner/work/Deathroll-Game-Factory-2.0/Deathroll-Game-Factory-2.0/output/game_with_art.html",
+    "test_report": "All tests passed"
   }
 }
