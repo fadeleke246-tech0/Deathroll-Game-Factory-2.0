@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>{{TITLE}}</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; background: #0a0a1a; color: white; padding: 2rem; }
+        .game-container { max-width: 800px; margin: 0 auto; background: #1a1a2e; padding: 2rem; border-radius: 1rem; }
+        button { padding: 0.5rem 1rem; font-size: 1.2rem; margin-top: 1rem; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1>{{TITLE}}</h1>
+        <p><strong>Mechanics:</strong> {{MECHANICS}}</p>
+        <p><strong>Controls:</strong> {{CONTROLS}}</p>
+        <p><strong>Victory Condition:</strong> {{VICTORY}}</p>
+        <button onclick="alert('Game starting!')">Play</button>
+    </div>
+</body>
+</html>
