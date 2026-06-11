@@ -1,8 +1,8 @@
 name: Deathroll Game Factory
 on:
-  workflow_dispatch:          # manual trigger (runs current phase)
+  workflow_dispatch:
   schedule:
-    - cron: '0 6 * * *'       # daily at 06:00 UTC (runs current phase)
+    - cron: '0 6 * * *'   # daily at 06:00 UTC
 permissions:
   contents: write
 jobs:
