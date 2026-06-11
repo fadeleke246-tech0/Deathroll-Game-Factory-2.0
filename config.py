@@ -1,36 +1,40 @@
+"""
+Configuration for the Deathroll Game Factory.
+Centralized settings, paths, and constants.
+"""
+
 import os
+from pathlib import Path
 
-# ========== TELEGRAM ==========
-TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
-TELEGRAM_ADMIN_CHAT_ID = os.getenv("TELEGRAM_ADMIN_CHAT_ID")   # Your DM
-TELEGRAM_CHANNEL_ID = os.getenv("TELEGRAM_CHANNEL_ID")         # @drolltech
+# ===== Paths =====
+BASE_DIR = Path(__file__).parent
+DATA_DIR = BASE_DIR / "data"
+OUTPUT_DIR = BASE_DIR / "output"
+DOCS_DIR = BASE_DIR / "docs"
+TEMPLATES_DIR = BASE_DIR / "templates"
+SCRIPTS_DIR = BASE_DIR / "scripts"
 
-# ========== AI APIs ==========
+# ===== API Keys (from GitHub Secrets) =====
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-# Fix common typo: OPENA_API_KEY -> OPENAI_API_KEY
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY") or os.getenv("OPENA_API_KEY")
-HF_API_TOKEN = os.getenv("HF_API_TOKEN")   # optional fallback
+# OPENAI_API_KEY is not used – safe to remove from GitHub Secrets
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+TELEGRAM_CHANNEL = "@deathrollprod"
 
-# ========== GitHub ==========
-# Use GH_TOKEN if provided, else fallback to GITHUB_TOKEN (auto-set by Actions)
-GITHUB_TOKEN = os.getenv("GH_TOKEN") or os.getenv("GITHUB_TOKEN")
+# ===== Factory Settings =====
+AUTO_APPROVE_WAIT_MINUTES = 5      # Wait for manual approval before auto‑proceeding
+MAX_RETRIES = 3
+SLEEP_BETWEEN_RETRIES = 10
 
-# ========== Paths ==========
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DATA_DIR = os.path.join(BASE_DIR, "data")
-OUTPUT_DIR = os.path.join(BASE_DIR, "output")
-TEMPLATES_DIR = os.path.join(BASE_DIR, "templates")
+# ===== Game Genres =====
+SUPPORTED_GENRES = ["shooter", "soccer", "racing", "platformer", "puzzle", "rpg"]
 
-# Ensure directories exist
-os.makedirs(DATA_DIR, exist_ok=True)
-os.makedirs(OUTPUT_DIR, exist_ok=True)
-os.makedirs(TEMPLATES_DIR, exist_ok=True)
+# ===== Image Generation =====
+POLLINATIONS_BASE_URL = "https://image.pollinations.ai/prompt"
+FALLBACK_IMAGE_SIZE = (512, 512)
+DEFAULT_PROMO_COLOR = "#2c3e50"
 
-# ========== Game Queue ==========
-GAMES_QUEUE_FILE = os.path.join(DATA_DIR, "games_queue.json")
-PORTFOLIO_FILE = os.path.join(DATA_DIR, "portfolio.json")
-RUN_STATE_FILE = os.path.join(DATA_DIR, "run_state.json")
-SAR_FILE = os.path.join(DATA_DIR, "sar_analysis.json")
-
-# ========== Phase Delays (minutes) ==========
-AUTO_APPROVE_WAIT_MINUTES = 60   # after Day 1 report, auto-approve if no /approve
+# ===== GitHub Pages Settings =====
+# These are automatically set by Actions, but you can override them
+REPO_OWNER = os.getenv("GITHUB_REPOSITORY_OWNER", "your-username")
+REPO_NAME = os.getenv("GITHUB_REPOSITORY", "").split("/")[-1]
+PUBLIC_BASE_URL = f"https://{REPO_OWNER}.github.io/{REPO_NAME}"
