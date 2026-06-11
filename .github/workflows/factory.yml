@@ -1,12 +1,12 @@
 name: Deathroll Game Factory
 
 on:
-  workflow_dispatch:        # Manual trigger
+  workflow_dispatch:
   schedule:
-    - cron: '0 */6 * * *'   # Every 6 hours (optional)
+    - cron: '0 */6 * * *'
 
 permissions:
-  contents: write           # Needed to push games to docs/
+  contents: write
 
 jobs:
   build-game:
@@ -36,35 +36,35 @@ jobs:
         if: steps.phase.outputs.phase == '1'
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-        run: python scripts/phase1_research.py
+        run: python scripts/phase1.py
 
       - name: Run Phase 2 (Plan)
         if: steps.phase.outputs.phase == '2'
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-        run: python scripts/phase2_plan.py
+        run: python scripts/phase2.py
 
       - name: Run Phase 3 (Greybox)
         if: steps.phase.outputs.phase == '3'
-        run: python scripts/phase3_greybox.py
+        run: python scripts/phase3.py
 
       - name: Run Phase 4 (Art & Audio)
         if: steps.phase.outputs.phase == '4'
-        run: python scripts/phase4_art.py
+        run: python scripts/phase4.py
 
       - name: Run Phase 5 (Testing)
         if: steps.phase.outputs.phase == '5'
-        run: python scripts/phase5_test.py
+        run: python scripts/phase5.py
 
       - name: Run Phase 6 (Build)
         if: steps.phase.outputs.phase == '6'
-        run: python scripts/phase6_build.py
+        run: python scripts/phase6.py
 
       - name: Run Phase 7 (Publish)
         if: steps.phase.outputs.phase == '7'
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-        run: python scripts/phase7_publish.py
+        run: python scripts/phase7.py
 
       - name: Commit and push changes
         if: always()
@@ -72,5 +72,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add data/ docs/ output/ || true
-          git diff --staged --quiet || git commit -m "Auto-update from factory phase"
+          git diff --staged --quiet || git commit -m "Auto-update from factory phase ${{ steps.phase.outputs.phase }}"
           git push
