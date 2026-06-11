@@ -1,21 +1,22 @@
 #!/usr/bin/env python3
 """
-Phase 6: Wrap game as PWA and copy to docs/ for GitHub Pages.
+Phase 6: Build
+- Copies the game from output/<game_id>/ to docs/<game_id>/
+- Creates PWA manifest and service worker (optional).
+- Does NOT commit; the workflow handles git add/commit.
 """
+
 import sys
-import os
-import shutil
 import json
-import subprocess
+from pathlib import Path
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, str(Path(__file__).parent.parent))
 import config
-from scripts.utils import (
-    send_to_admin, get_current_game, update_game_status,
-    load_json, set_phase_state
-)
+import utils
 
-def create_pwa_files(game_dir, game_title):
+
+def create_pwa_files(dest_dir: Path, game_title: str):
+    """Generate a minimal manifest.json and service worker."""
     manifest = {
         "name": game_title,
         "short_name": game_title[:12],
@@ -23,69 +24,64 @@ def create_pwa_files(game_dir, game_title):
         "display": "standalone",
         "theme_color": "#000000",
         "background_color": "#ffffff",
-        "icons": [{"src": "icon-192.png", "sizes": "192x192", "type": "image/png"}]
+        "icons": []
     }
-    with open(os.path.join(game_dir, "manifest.json"), "w") as f:
-        json.dump(manifest, f)
-    sw_js = """self.addEventListener('install', e => { e.waitUntil(self.skipWaiting()); });
-self.addEventListener('fetch', e => { e.respondWith(fetch(e.request)); });"""
-    with open(os.path.join(game_dir, "sw.js"), "w") as f:
-        f.write(sw_js)
-    try:
-        from PIL import Image, ImageDraw
-        img = Image.new('RGB', (192,192), color='green')
-        d = ImageDraw.Draw(img)
-        d.text((10,80), "DS", fill='white')
-        img.save(os.path.join(game_dir, "icon-192.png"))
-    except ImportError:
-        pass
+    utils.save_json(manifest, dest_dir / "manifest.json")
+
+    sw_js = """
+self.addEventListener('install', event => {
+    console.log('Service worker installed');
+});
+self.addEventListener('fetch', event => {
+    event.respondWith(fetch(event.request));
+});
+"""
+    (dest_dir / "sw.js").write_text(sw_js)
+    print("📱 PWA files created.")
+
 
 def main():
-    game, _ = get_current_game()
-    if not game:
-        send_to_admin("No active game for Phase 6.")
-        return
-    genre = game["genre"]
-    send_to_admin(f"📦 Phase 6 started: building PWA for {genre}")
+    print("🏗️ PHASE 6: BUILD")
 
-    state = load_json(config.RUN_STATE_FILE)
-    html_path = state.get("phase_data", {}).get("tested_html")
-    if not html_path or not os.path.exists(html_path):
-        html_path = os.path.join(config.OUTPUT_DIR, "game_with_art.html")
-        if not os.path.exists(html_path):
-            send_to_admin("❌ No game HTML found. Aborting Phase 6.")
-            return
+    state = utils.load_json(config.DATA_DIR / "run_state.json")
+    game = state.get("current_game")
+    if not game or game["phase"] != 6:
+        print("❌ No game in build phase.")
+        sys.exit(1)
 
-    pages_dir = os.path.join(config.BASE_DIR, "docs")
-    os.makedirs(pages_dir, exist_ok=True)
-    game_slug = genre.replace(" ", "_").replace("-", "_")
-    game_output_dir = os.path.join(pages_dir, game_slug)
-    os.makedirs(game_output_dir, exist_ok=True)
+    game_id = game["id"]
+    output_dir = config.OUTPUT_DIR / game_id
+    docs_game_dir = config.DOCS_DIR / game_id
 
-    # Copy HTML as index.html
-    shutil.copy(html_path, os.path.join(game_output_dir, "index.html"))
+    # Copy game files
+    if not utils.copy_game_to_docs(game_id, config.OUTPUT_DIR, config.DOCS_DIR):
+        print("❌ Failed to copy game to docs/")
+        sys.exit(1)
 
-    # Copy assets (if any)
-    assets_src = os.path.join(config.OUTPUT_DIR, "assets")
-    if os.path.exists(assets_src):
-        shutil.copytree(assets_src, os.path.join(game_output_dir, "assets"), dirs_exist_ok=True)
+    # Create PWA files
+    create_pwa_files(docs_game_dir, game["title"])
 
-    create_pwa_files(game_output_dir, f"Deathroll {genre}")
+    # Update portfolio.json with final game URL
+    portfolio = utils.load_json(config.DATA_DIR / "portfolio.json")
+    if game_id in portfolio:
+        portfolio[game_id]["game_url"] = f"{config.PUBLIC_BASE_URL}/{game_id}/index.html"
+        portfolio[game_id]["status"] = "published"
+        utils.save_json(portfolio, config.DATA_DIR / "portfolio.json")
 
-    # Force git to track these files (will be committed by workflow)
-    try:
-        subprocess.run(["git", "add", game_output_dir], check=False)
-        subprocess.run(["git", "add", os.path.join(pages_dir, ".nojekyll")], check=False)
-    except:
-        pass
+    # Update queue
+    queue = utils.load_json(config.DATA_DIR / "games_queue.json")
+    if game_id in queue:
+        queue[game_id]["status"] = "completed"
+        utils.save_json(queue, config.DATA_DIR / "games_queue.json")
 
-    owner = os.getenv("GITHUB_REPOSITORY_OWNER", "fadeleke246-tech0")
-    repo = os.getenv("GITHUB_REPOSITORY", "Deathroll-Game-Factory-2.0").split("/")[-1]
-    game_url = f"https://{owner}.github.io/{repo}/{game_slug}/"
+    # Advance to publish phase
+    state["phase"] = 7
+    game["phase"] = 7
+    game["status"] = "publishing"
+    utils.save_json(state, config.DATA_DIR / "run_state.json")
 
-    update_game_status(genre, "phase6_done", {"game_url": game_url})
-    set_phase_state(7, {"game_url": game_url, "local_path": game_output_dir})
-    send_to_admin(f"✅ PWA built at {game_url}. Moving to Phase 7.")
+    print("✅ Phase 6 complete. Moving to Phase 7 (Publish).")
+
 
 if __name__ == "__main__":
     main()
