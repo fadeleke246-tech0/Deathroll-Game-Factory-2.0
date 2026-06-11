@@ -1,131 +1,168 @@
+"""
+Utility functions used across all phases: JSON handling, image generation,
+text extraction, Git operations, and Telegram messaging.
+"""
+
 import json
-import requests
+import re
 import time
+import shutil
+import subprocess
 from pathlib import Path
-import sys
-import os
+from typing import Dict, List, Optional, Any, Union
 
-# Add parent directory to path so we can import config
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-import config
+import requests
+from PIL import Image, ImageDraw, ImageFont
 
-# ------------------- Telegram -------------------
-def send_telegram(chat_id, text, parse_mode="HTML"):
-    """Send message to a Telegram chat (DM or channel)"""
-    url = f"https://api.telegram.org/bot{config.TELEGRAM_BOT_TOKEN}/sendMessage"
-    payload = {
-        "chat_id": chat_id,
-        "text": text,
-        "parse_mode": parse_mode,
-        "disable_web_page_preview": True
-    }
+
+# ----- File I/O -------------------------------------------------
+def load_json(file_path: Path) -> Dict:
+    """Load JSON from a file. Return empty dict if file missing or invalid."""
+    if not file_path.exists():
+        return {}
     try:
-        r = requests.post(url, json=payload, timeout=30)
-        r.raise_for_status()
+        with open(file_path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except (json.JSONDecodeError, OSError) as e:
+        print(f"⚠️ Failed to load {file_path}: {e}")
+        return {}
+
+
+def save_json(data: Any, file_path: Path, indent: int = 2) -> bool:
+    """Save data as JSON to a file. Returns True on success."""
+    try:
+        file_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(file_path, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=indent)
         return True
-    except Exception as e:
-        print(f"Telegram send error: {e}")
+    except OSError as e:
+        print(f"❌ Failed to save {file_path}: {e}")
         return False
 
-def send_to_admin(text):
-    """Send report to developer's DM"""
-    return send_telegram(config.TELEGRAM_ADMIN_CHAT_ID, text)
 
-def send_to_channel(text):
-    """Send final game post to public channel"""
-    return send_telegram(config.TELEGRAM_CHANNEL_ID, text)
-
-# ------------------- File helpers -------------------
-def load_json(filepath):
-    if not os.path.exists(filepath):
-        return {}
-    with open(filepath, "r") as f:
-        return json.load(f)
-
-def save_json(filepath, data):
-    with open(filepath, "w") as f:
-        json.dump(data, f, indent=2)
-
-# ------------------- Game Queue -------------------
-def get_current_game():
-    """Returns (genre, index) of the game currently being processed"""
-    queue = load_json(config.GAMES_QUEUE_FILE)
-    if not queue or "games" not in queue:
-        return None, -1
-    for idx, game in enumerate(queue["games"]):
-        if game.get("status") not in ["completed", "skipped"]:
-            return game, idx
-    return None, -1
-
-def update_game_status(genre, status, meta=None):
-    queue = load_json(config.GAMES_QUEUE_FILE)
-    for game in queue.get("games", []):
-        if game["genre"] == genre:
-            game["status"] = status
-            if meta:
-                game.update(meta)
-            break
-    save_json(config.GAMES_QUEUE_FILE, queue)
-
-def mark_game_completed(genre, game_url, promo_image_url):
-    update_game_status(genre, "completed", {
-        "completed_at": time.time(),
-        "game_url": game_url,
-        "promo_image": promo_image_url
-    })
-    # Also add to portfolio
-    portfolio = load_json(config.PORTFOLIO_FILE)
-    if "games" not in portfolio:
-        portfolio["games"] = []
-    portfolio["games"].append({
-        "genre": genre,
-        "url": game_url,
-        "promo": promo_image_url,
-        "date": time.time()
-    })
-    save_json(config.PORTFOLIO_FILE, portfolio)
-
-# ------------------- Phase state -------------------
-def get_phase_state():
-    """Return current phase (1-7) and any metadata"""
-    state = load_json(config.RUN_STATE_FILE)
-    return state.get("phase", 1), state.get("phase_data", {})
-
-def set_phase_state(phase, phase_data=None):
-    state = load_json(config.RUN_STATE_FILE)
-    state["phase"] = phase
-    if phase_data:
-        state["phase_data"] = phase_data
+# ----- LLM Response Parsing ------------------------------------
+def extract_json_from_text(text: str) -> Optional[Dict]:
+    """
+    Extract JSON from LLM responses that may contain markdown or extra text.
+    Handles ```json blocks or raw JSON objects.
+    """
+    # Try to find a ```json ... ``` block first
+    match = re.search(r"```json\s*(\{.*?\})\s*```", text, re.DOTALL)
+    if match:
+        text = match.group(1)
     else:
-        state["phase_data"] = {}
-    save_json(config.RUN_STATE_FILE, state)
-
-# ------------------- Art helpers -------------------
-def generate_image(prompt, output_path, width=512, height=512):
-    """
-    Use Pollinations.ai (free, no key) to generate image.
-    Falls back to PIL if Pollinations fails.
-    """
-    # Pollinations URL format
-    url = f"https://image.pollinations.ai/prompt/{requests.utils.quote(prompt)}?width={width}&height={height}"
+        # Fallback: find the first { and last }
+        start = text.find("{")
+        end = text.rfind("}")
+        if start != -1 and end != -1:
+            text = text[start:end+1]
+        else:
+            return None
     try:
-        resp = requests.get(url, timeout=60)
-        if resp.status_code == 200:
+        return json.loads(text)
+    except json.JSONDecodeError as e:
+        print(f"⚠️ JSON decode error: {e}")
+        return None
+
+
+# ----- Image Generation -----------------------------------------
+def generate_image(prompt: str, output_path: Path) -> bool:
+    """
+    Generate an image using Pollinations.ai.
+    Falls back to a coloured placeholder if the API fails.
+    Returns True if an image exists at output_path.
+    """
+    try:
+        encoded = requests.utils.quote(prompt)
+        url = f"https://image.pollinations.ai/prompt/{encoded}?width=1024&height=1024"
+        response = requests.get(url, timeout=30)
+        if response.status_code == 200:
+            output_path.parent.mkdir(parents=True, exist_ok=True)
             with open(output_path, "wb") as f:
-                f.write(resp.content)
+                f.write(response.content)
+            print(f"✅ Generated image: {output_path}")
             return True
     except Exception as e:
-        print(f"Pollinations error: {e}")
-    
-    # Fallback: create a solid color image with text using PIL
+        print(f"⚠️ Pollinations.ai failed: {e}")
+
+    # Fallback: create a simple coloured image with text
     try:
-        from PIL import Image, ImageDraw, ImageFont
-        img = Image.new('RGB', (width, height), color=(73, 109, 137))
-        d = ImageDraw.Draw(img)
-        # Use default font
-        d.text((10, height//2), prompt[:50], fill=(255,255,255))
+        img = Image.new("RGB", (512, 512), color="#2c3e50")
+        draw = ImageDraw.Draw(img)
+        # Use default PIL font (no external font needed)
+        draw.text((256, 256), prompt[:50], fill="white", anchor="mm")
         img.save(output_path)
+        print(f"🎨 Created fallback image: {output_path}")
         return True
-    except ImportError:
-        print("PIL not available, cannot generate fallback image")
+    except Exception as e:
+        print(f"❌ Fallback image creation failed: {e}")
+        return False
+
+
+# ----- Git Operations -------------------------------------------
+def commit_and_push(message: str, paths: List[str]) -> bool:
+    """
+    Add, commit, and push changes using git.
+    Returns True if all commands succeed.
+    """
+    try:
+        subprocess.run(["git", "add"] + paths, check=True, capture_output=True)
+        subprocess.run(["git", "commit", "-m", message], check=True, capture_output=True)
+        subprocess.run(["git", "push"], check=True, capture_output=True)
+        print(f"✅ Committed and pushed: {message}")
+        return True
+    except subprocess.CalledProcessError as e:
+        print(f"❌ Git operation failed: {e.stderr.decode() if e.stderr else e}")
+        return False
+
+
+def copy_game_to_docs(game_id: str, output_dir: Path, docs_dir: Path) -> bool:
+    """
+    Copy all game files from output_dir/game_id to docs_dir/game_id.
+    Ensures the main HTML is named index.html.
+    """
+    source = output_dir / game_id
+    dest = docs_dir / game_id
+    if not source.exists():
+        print(f"❌ Source game folder missing: {source}")
+        return False
+
+    # Remove old destination if exists
+    if dest.exists():
+        shutil.rmtree(dest)
+    dest.mkdir(parents=True, exist_ok=True)
+
+    # Copy all files
+    for item in source.iterdir():
+        if item.is_file():
+            shutil.copy2(item, dest / item.name)
+
+    # Rename main HTML to index.html if needed
+    # Assumes the game entry point is either index.html or game.html
+    index_candidates = ["index.html", "game.html", f"{game_id}.html"]
+    for candidate in index_candidates:
+        candidate_path = dest / candidate
+        if candidate_path.exists() and candidate != "index.html":
+            candidate_path.rename(dest / "index.html")
+            break
+
+    print(f"📦 Copied game '{game_id}' to {dest}")
+    return True
+
+
+# ----- Telegram -------------------------------------------------
+def send_telegram_message(bot_token: str, channel: str, message: str) -> bool:
+    """Send a plain text message to a Telegram channel."""
+    url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
+    payload = {"chat_id": channel, "text": message, "parse_mode": "Markdown"}
+    try:
+        resp = requests.post(url, json=payload, timeout=10)
+        if resp.status_code == 200:
+            print("✅ Telegram message sent")
+            return True
+        else:
+            print(f"⚠️ Telegram error: {resp.text}")
+            return False
+    except Exception as e:
+        print(f"❌ Telegram send failed: {e}")
         return False
