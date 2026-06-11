@@ -1,6 +1,7 @@
 {
-  "phase": 4,
+  "phase": 5,
   "phase_data": {
-    "greybox_path": "/home/runner/work/Deathroll-Game-Factory-2.0/Deathroll-Game-Factory-2.0/output/greybox/game.html"
+    "art_dir": "/home/runner/work/Deathroll-Game-Factory-2.0/Deathroll-Game-Factory-2.0/output/assets",
+    "final_html": "/home/runner/work/Deathroll-Game-Factory-2.0/Deathroll-Game-Factory-2.0/output/game_with_art.html"
   }
 }
