@@ -2,8 +2,10 @@
   "games": [
     {
       "genre": "offline-fps",
-      "status": "phase6_done",
-      "game_url": "https://fadeleke246-tech0.github.io/Deathroll-Game-Factory-2.0/offline_fps/"
+      "status": "completed",
+      "game_url": "https://fadeleke246-tech0.github.io/Deathroll-Game-Factory-2.0/offline_fps/",
+      "completed_at": 1781181011.2314854,
+      "promo_image": "/home/runner/work/Deathroll-Game-Factory-2.0/Deathroll-Game-Factory-2.0/output/promo_offline-fps.png"
     }
   ]
 }
