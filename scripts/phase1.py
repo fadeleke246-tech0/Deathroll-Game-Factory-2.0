@@ -9,8 +9,15 @@ import utils
 def main():
     print("🔍 PHASE 1: RESEARCH")
     state = utils.load_json(config.DATA_DIR / "run_state.json")
-    if state.get("phase") != 1:
-        print(f"Expected phase 1, got {state.get('phase')}. Skipping.")
+    current_phase = state.get("phase")
+    if current_phase is None:
+        # No phase set – treat as phase 1
+        current_phase = 1
+        state["phase"] = 1
+        utils.save_json(state, config.DATA_DIR / "run_state.json")
+        print("Initialized run_state.json with phase 1.")
+    if current_phase != 1:
+        print(f"Expected phase 1, got {current_phase}. Skipping.")
         return
 
     utils.send_telegram_admin("📊 Phase 1 started: researching game idea...")
