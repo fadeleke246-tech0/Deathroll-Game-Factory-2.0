@@ -1,0 +1,203 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Echo Blast</title>
+    <style>
+        canvas {
+            border: 1px solid black;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const player = {
+            x: 400,
+            y: 300,
+            radius: 20,
+            color: 'blue',
+            speed: 5,
+            health: 100,
+            score: 0,
+            lives: 3
+        };
+        const enemies = [];
+        const bullets = [];
+        let level = 1;
+        let intervalId;
+
+        // Load images
+        const images = {
+            player: new Image(),
+            enemy: new Image(),
+            background: new Image(),
+            bullet: new Image()
+        };
+        images.player.src = 'assets/player.png';
+        images.enemy.src = 'assets/enemy.png';
+        images.background.src = 'assets/background.png';
+        images.bullet.src = 'assets/bullet.png';
+
+        // Fallback to colored shapes if images missing
+        images.player.onerror = () => {
+            images.player = { width: 20, height: 20, fillStyle: 'blue' };
+        };
+        images.enemy.onerror = () => {
+            images.enemy = { width: 20, height: 20, fillStyle: 'red' };
+        };
+        images.background.onerror = () => {
+            images.background = { width: 800, height: 600, fillStyle: 'gray' };
+        };
+        images.bullet.onerror = () => {
+            images.bullet = { width: 5, height: 5, fillStyle: 'white' };
+        };
+
+        // Game loop
+        function gameLoop() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(images.background, 0, 0);
+
+            // Draw player
+            ctx.fillStyle = player.color;
+            ctx.beginPath();
+            ctx.arc(player.x, player.y, player.radius, 0, 2 * Math.PI);
+            ctx.fill();
+
+            // Draw enemies
+            for (let i = enemies.length - 1; i >= 0; i--) {
+                ctx.drawImage(images.enemy, enemies[i].x, enemies[i].y);
+                enemies[i].y += 2;
+                if (enemies[i].y > canvas.height) {
+                    enemies.splice(i, 1);
+                }
+                // Check collision with player
+                const distance = Math.sqrt((player.x - enemies[i].x) ** 2 + (player.y - enemies[i].y) ** 2);
+                if (distance < player.radius + 20) {
+                    player.health -= 10;
+                    enemies.splice(i, 1);
+                }
+            }
+
+            // Draw bullets
+            for (let i = bullets.length - 1; i >= 0; i--) {
+                ctx.drawImage(images.bullet, bullets[i].x, bullets[i].y);
+                bullets[i].y -= 5;
+                if (bullets[i].y < 0) {
+                    bullets.splice(i, 1);
+                }
+                // Check collision with enemies
+                for (let j = enemies.length - 1; j >= 0; j--) {
+                    const distance = Math.sqrt((bullets[i].x - enemies[j].x) ** 2 + (bullets[i].y - enemies[j].y) ** 2);
+                    if (distance < bullets[i].radius + 20) {
+                        enemies.splice(j, 1);
+                        bullets.splice(i, 1);
+                        player.score += 10;
+                    }
+                }
+            }
+
+            // Draw score and lives
+            ctx.font = '24px Arial';
+            ctx.fillStyle = 'white';
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'top';
+            ctx.fillText(`Score: ${player.score}`, 10, 10);
+            ctx.fillText(`Lives: ${player.lives}`, 10, 40);
+
+            // Draw level
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(`Level: ${level}`, canvas.width / 2, 10);
+
+            // Check game over
+            if (player.health <= 0) {
+                player.lives--;
+                player.health = 100;
+                if (player.lives <= 0) {
+                    alert(`Game Over! Final Score: ${player.score}`);
+                    player.lives = 3;
+                    player.score = 0;
+                    level = 1;
+                    enemies.length = 0;
+                    bullets.length = 0;
+                } else {
+                    level = 1;
+                    enemies.length = 0;
+                    bullets.length = 0;
+                }
+            }
+
+            // Update player position
+            if (canvas.width / 2 - player.radius < 0) {
+                player.x = 0;
+            } else if (canvas.width / 2 + player.radius > canvas.width) {
+                player.x = canvas.width - player.radius;
+            } else {
+                player.x = canvas.width / 2;
+            }
+            if (canvas.height / 2 - player.radius < 0) {
+                player.y = 0;
+            } else if (canvas.height / 2 + player.radius > canvas.height) {
+                player.y = canvas.height - player.radius;
+            } else {
+                player.y = canvas.height / 2;
+            }
+
+            // Spawn enemies
+            if (Math.random() < 0.05) {
+                enemies.push({
+                    x: Math.random() * (canvas.width - 20),
+                    y: 0,
+                    radius: 10,
+                    speed: 2
+                });
+            }
+
+            // Spawn bullets
+            if (Math.random() < 0.05) {
+                bullets.push({
+                    x: player.x,
+                    y: player.y,
+                    radius: 5,
+                    speed: 5
+                });
+            }
+
+            // Update interval
+            intervalId = requestAnimationFrame(gameLoop);
+        }
+
+        // Event listeners
+        canvas.addEventListener('mousedown', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            bullets.push({
+                x,
+                y,
+                radius: 5,
+                speed: 5
+            });
+        });
+        canvas.addEventListener('touchstart', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.touches[0].clientX - rect.left;
+            const y = e.touches[0].clientY - rect.top;
+            bullets.push({
+                x,
+                y,
+                radius: 5,
+                speed: 5
+            });
+        });
+
+        // Start game loop
+        gameLoop();
+    </script>
+</body>
+</html>
