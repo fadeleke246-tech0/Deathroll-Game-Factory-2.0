@@ -5,7 +5,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import config
-import utils
+from scripts import utils
 
 def main():
     print("🏗️ PHASE 6: BUILD")
@@ -27,7 +27,8 @@ def main():
         (dst / "game.html").rename(dst / "index.html")
 
     manifest = dst / "manifest.json"
-    manifest.write_text(f'{{"name":"{game['title']}","start_url":".","display":"standalone"}}')
+    # Fixed line: use double quotes inside the f-string for the key
+    manifest.write_text(f'{{"name":"{game["title"]}","start_url":".","display":"standalone"}}')
 
     state["phase"] = 7
     utils.save_json(state, config.DATA_DIR / "run_state.json")
