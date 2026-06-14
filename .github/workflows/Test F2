@@ -1,0 +1,51 @@
+name: Deathroll Game Factory (Full Run)
+on:
+  workflow_dispatch:          # manual trigger only (no cron)
+permissions:
+  contents: write
+jobs:
+  full-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: pip install google-genai groq pillow requests
+      - name: Run Phase 1 (Research)
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_ADMIN_CHAT_ID: ${{ secrets.TELEGRAM_ADMIN_CHAT_ID }}
+        run: python scripts/phase1.py
+      - name: Run Phase 2 (Plan & Code)
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+        run: python scripts/phase2.py
+      - name: Run Phase 3 (Greybox)
+        run: python scripts/phase3.py
+      - name: Run Phase 4 (Art)
+        run: python scripts/phase4.py
+      - name: Run Phase 5 (Testing)
+        run: python scripts/phase5.py
+      - name: Run Phase 6 (Build)
+        run: python scripts/phase6.py
+      - name: Run Phase 7 (Publish)
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_ADMIN_CHAT_ID: ${{ secrets.TELEGRAM_ADMIN_CHAT_ID }}
+          TELEGRAM_CHANNEL: ${{ secrets.TELEGRAM_CHANNEL }}
+        run: python scripts/phase7.py
+      - name: Commit and push all changes
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          mkdir -p data docs output
+          git add data/ docs/ output/ || true
+          git diff --staged --quiet || git commit -m "Full factory run: game generation complete"
+          git push
