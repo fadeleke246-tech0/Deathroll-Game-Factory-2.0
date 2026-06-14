@@ -1,4 +1,4 @@
-name: Deathroll Game Factory (Full Run)
+name: Test F2 (Full Run)
 on:
   workflow_dispatch:          # manual trigger only (no cron)
 permissions:
