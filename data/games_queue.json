@@ -2,5 +2,9 @@
   "echo_blast": {
     "status": "completed",
     "title": "Echo Blast"
+  },
+  "burst_blitz": {
+    "status": "planned",
+    "title": "Burst Blitz"
   }
 }
