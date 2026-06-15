@@ -1,0 +1,220 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Burst Blitz</title>
+    <style>
+        /* Basic styling for the game */
+        canvas {
+            border: 1px solid black;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+    <script>
+        // Get the canvas element
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Set up game variables
+        let score = 0;
+        let lives = 3;
+        let playerSpeed = 5;
+        let playerX = canvas.width / 2;
+        let playerY = canvas.height / 2;
+        let playerRadius = 20;
+        let playerVelX = 0;
+        let playerVelY = 0;
+        let enemyX = Math.random() * (canvas.width - 50);
+        let enemyY = Math.random() * (canvas.height - 50);
+        let enemyRadius = 20;
+        let enemyVelX = 2;
+        let enemyVelY = 2;
+        let powerUpX = Math.random() * (canvas.width - 20);
+        let powerUpY = Math.random() * (canvas.height - 20);
+        let bulletX = null;
+        let bulletY = null;
+        let bulletVelX = null;
+        let bulletVelY = null;
+        let clockTime = 0;
+        let gameOver = false;
+
+        // Load images or use fallbacks
+        const images = {
+            player: new Image(),
+            enemy: new Image(),
+            background: new Image(),
+            bullet: new Image()
+        };
+
+        images.player.src = 'assets/player.png';
+        images.enemy.src = 'assets/enemy.png';
+        images.background.src = 'assets/background.png';
+        images.bullet.src = 'assets/bullet.png';
+
+        images.player.onerror = () => {
+            images.player.src = 'fallback/player.png';
+        };
+
+        images.enemy.onerror = () => {
+            images.enemy.src = 'fallback/enemy.png';
+        };
+
+        images.background.onerror = () => {
+            images.background.src = 'fallback/background.png';
+        };
+
+        images.bullet.onerror = () => {
+            images.bullet.src = 'fallback/bullet.png';
+        };
+
+        // Main game loop
+        function update() {
+            if (!gameOver) {
+                clockTime++;
+                // Update player position
+                playerX += playerVelX;
+                playerY += playerVelY;
+
+                // Update enemy position
+                enemyX += enemyVelX;
+                enemyY += enemyVelY;
+
+                // Check for collisions with enemy
+                const distance = Math.sqrt(Math.pow(playerX - enemyX, 2) + Math.pow(playerY - enemyY, 2));
+                if (distance < playerRadius + enemyRadius) {
+                    lives--;
+                    enemyX = Math.random() * (canvas.width - 50);
+                    enemyY = Math.random() * (canvas.height - 50);
+                }
+
+                // Check for collisions with power-up
+                const powerUpDistance = Math.sqrt(Math.pow(playerX - powerUpX, 2) + Math.pow(playerY - powerUpY, 2));
+                if (powerUpDistance < playerRadius + 10) {
+                    score++;
+                    powerUpX = Math.random() * (canvas.width - 20);
+                    powerUpY = Math.random() * (canvas.height - 20);
+                }
+
+                // Check for collisions with bullets
+                if (bulletX !== null) {
+                    const bulletDistance = Math.sqrt(Math.pow(playerX - bulletX, 2) + Math.pow(playerY - bulletY, 2));
+                    if (bulletDistance < playerRadius + 10) {
+                        lives--;
+                        bulletX = null;
+                        bulletY = null;
+                    }
+                }
+
+                // Check for game over
+                if (lives <= 0) {
+                    gameOver = true;
+                }
+
+                // Update bullet position
+                if (bulletX !== null) {
+                    bulletX += bulletVelX;
+                    bulletY += bulletVelY;
+                    if (bulletX < 0 || bulletX > canvas.width || bulletY < 0 || bulletY > canvas.height) {
+                        bulletX = null;
+                        bulletY = null;
+                    }
+                }
+
+                // Draw everything
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(images.background, 0, 0, canvas.width, canvas.height);
+                ctx.drawImage(images.player, playerX - playerRadius, playerY - playerRadius, playerRadius * 2, playerRadius * 2);
+                ctx.drawImage(images.enemy, enemyX - enemyRadius, enemyY - enemyRadius, enemyRadius * 2, enemyRadius * 2);
+                if (bulletX !== null) {
+                    ctx.drawImage(images.bullet, bulletX - 10, bulletY - 10, 20, 20);
+                }
+                ctx.font = '24px Arial';
+                ctx.fillStyle = 'white';
+                ctx.textAlign = 'left';
+                ctx.textBaseline = 'top';
+                ctx.fillText(`Score: ${score}`, 10, 10);
+                ctx.fillText(`Lives: ${lives}`, 10, 40);
+                ctx.fillText(`Time: ${clockTime}`, 10, 70);
+            } else {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.font = '48px Arial';
+                ctx.fillStyle = 'white';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('Game Over!', canvas.width / 2, canvas.height / 2);
+                ctx.font = '24px Arial';
+                ctx.fillText(`Final Score: ${score}`, canvas.width / 2, canvas.height / 2 + 50);
+                ctx.fillText(`Press Space to restart`, canvas.width / 2, canvas.height / 2 + 100);
+            }
+
+            // Request the next frame
+            requestAnimationFrame(update);
+        }
+
+        // Handle user input
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowUp') {
+                playerVelY = -playerSpeed;
+            } else if (e.key === 'ArrowDown') {
+                playerVelY = playerSpeed;
+            } else if (e.key === 'ArrowLeft') {
+                playerVelX = -playerSpeed;
+            } else if (e.key === 'ArrowRight') {
+                playerVelX = playerSpeed;
+            } else if (e.key === ' ') {
+                if (gameOver) {
+                    score = 0;
+                    lives = 3;
+                    playerX = canvas.width / 2;
+                    playerY = canvas.height / 2;
+                    enemyX = Math.random() * (canvas.width - 50);
+                    enemyY = Math.random() * (canvas.height - 50);
+                    powerUpX = Math.random() * (canvas.width - 20);
+                    powerUpY = Math.random() * (canvas.height - 20);
+                    bulletX = null;
+                    bulletY = null;
+                    gameOver = false;
+                }
+            }
+        });
+
+        document.addEventListener('keyup', (e) => {
+            if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+                playerVelY = 0;
+            } else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+                playerVelX = 0;
+            }
+        });
+
+        document.addEventListener('touchstart', (e) => {
+            if (e.touches.length > 0) {
+                const touch = e.touches[0];
+                if (touch.clientX < canvas.width / 2) {
+                    playerVelX = -playerSpeed;
+                } else {
+                    playerVelX = playerSpeed;
+                }
+                if (touch.clientY < canvas.height / 2) {
+                    playerVelY = -playerSpeed;
+                } else {
+                    playerVelY = playerSpeed;
+                }
+            }
+        });
+
+        document.addEventListener('touchend', (e) => {
+            if (e.touches.length === 0) {
+                playerVelX = 0;
+                playerVelY = 0;
+            }
+        });
+
+        // Start the game loop
+        update();
+    </script>
+</body>
+</html>
