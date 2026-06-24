@@ -2,7 +2,7 @@
   "echo_blast": {
     "title": "Echo Blast",
     "genre": "shooter",
-    "concept": "In Echo Blast, you control a spherical robot that can absorb and redirect energy blasts to destroy incoming enemies and obstacles, while navigating a futuristic cityscape. As you progress through levels, the city's environment and enemy types change, requiring you to adapt your strategy and reflexes.",
+    "concept": "Echo Blast is a fast-paced shooter where players must tap to shoot projectiles at incoming waves of enemies, while also using a unique time-manipulation mechanic to slow down or speed up time to avoid obstacles and catch power-ups. The game features increasingly challenging levels and a variety of power-ups to keep players on their toes.",
     "promo": "https://fadeleke246-tech0.github.io/Deathroll-Game-Factory-2.0/promo_echo_blast.png",
     "game_url": "https://fadeleke246-tech0.github.io/Deathroll-Game-Factory-2.0/echo_blast/index.html"
   },
