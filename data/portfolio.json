@@ -12,5 +12,12 @@
     "concept": "In Burst Blitz, players control a high-speed car that must navigate through a futuristic city, collecting power-ups and dodging obstacles while racing against the clock.",
     "promo": "https://fadeleke246-tech0.github.io/Deathroll-Game-Factory-2.0/promo_burst_blitz.png",
     "game_url": "https://fadeleke246-tech0.github.io/Deathroll-Game-Factory-2.0/burst_blitz/index.html"
+  },
+  "echoes_of_neon": {
+    "title": "Echoes of Neon",
+    "genre": "Racing / Platformer",
+    "concept": "In Echoes of Neon, players control a futuristic, neon-lit runner who must navigate through a series of increasingly challenging levels filled with obstacles and power-ups. By collecting and combining different neon fragments, players can unlock new abilities and enhance their runner's speed and agility.",
+    "promo": "https://fadeleke246-tech0.github.io/Deathroll-Game-Factory-2.0/promo_echoes_of_neon.png",
+    "game_url": "https://fadeleke246-tech0.github.io/Deathroll-Game-Factory-2.0/echoes_of_neon/index.html"
   }
 }
