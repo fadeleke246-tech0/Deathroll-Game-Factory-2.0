@@ -10,5 +10,9 @@
   "echoes_of_neon": {
     "status": "completed",
     "title": "Echoes of Neon"
+  },
+  "skyball": {
+    "status": "planned",
+    "title": "Skyball"
   }
 }
