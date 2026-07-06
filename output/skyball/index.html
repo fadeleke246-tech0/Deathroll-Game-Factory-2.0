@@ -1,0 +1,298 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Skyball</title>
+    <style>
+        canvas {
+            border: 1px solid black;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+    <script>
+        // Get the canvas element
+        var canvas = document.getElementById('gameCanvas');
+        var ctx = canvas.getContext('2d');
+
+        // Set up the game variables
+        var player = {
+            x: 50,
+            y: 50,
+            width: 20,
+            height: 20,
+            speed: 5,
+            lives: 3,
+            score: 0,
+            type: 'ball',
+            image: 'assets/player.png',
+            bulletImage: 'assets/bullet.png',
+            bulletWidth: 10,
+            bulletHeight: 10,
+            bulletSpeed: 5,
+            bulletCooldown: 0
+        };
+        var enemies = [];
+        var powerUps = [];
+        var bullets = [];
+        var exit = {
+            x: 750,
+            y: 550,
+            width: 20,
+            height: 20
+        };
+        var time = 60;
+        var timerInterval;
+
+        // Function to draw the player
+        function drawPlayer() {
+            if (player.image) {
+                ctx.drawImage(new Image(), player.x, player.y, player.width, player.height);
+            } else {
+                ctx.fillStyle = 'blue';
+                ctx.fillRect(player.x, player.y, player.width, player.height);
+            }
+        }
+
+        // Function to draw the enemies
+        function drawEnemies() {
+            enemies.forEach((enemy, index) => {
+                if (enemy.image) {
+                    ctx.drawImage(new Image(), enemy.x, enemy.y, enemy.width, enemy.height);
+                } else {
+                    ctx.fillStyle = 'red';
+                    ctx.fillRect(enemy.x, enemy.y, enemy.width, enemy.height);
+                }
+            });
+        }
+
+        // Function to draw the power-ups
+        function drawPowerUps() {
+            powerUps.forEach((powerUp, index) => {
+                if (powerUp.image) {
+                    ctx.drawImage(new Image(), powerUp.x, powerUp.y, powerUp.width, powerUp.height);
+                } else {
+                    ctx.fillStyle = 'green';
+                    ctx.fillRect(powerUp.x, powerUp.y, powerUp.width, powerUp.height);
+                }
+            });
+        }
+
+        // Function to draw the bullets
+        function drawBullets() {
+            bullets.forEach((bullet, index) => {
+                if (bullet.image) {
+                    ctx.drawImage(new Image(), bullet.x, bullet.y, bullet.width, bullet.height);
+                } else {
+                    ctx.fillStyle = 'gray';
+                    ctx.fillRect(bullet.x, bullet.y, bullet.width, bullet.height);
+                }
+            });
+        }
+
+        // Function to draw the exit
+        function drawExit() {
+            ctx.fillStyle = 'yellow';
+            ctx.fillRect(exit.x, exit.y, exit.width, exit.height);
+        }
+
+        // Function to draw the background
+        function drawBackground() {
+            if (document.getElementById('backgroundImage')) {
+                ctx.drawImage(new Image(), 0, 0, canvas.width, canvas.height);
+            } else {
+                ctx.fillStyle = 'lightblue';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            }
+        }
+
+        // Function to handle collisions
+        function checkCollisions() {
+            // Check collisions with enemies
+            enemies.forEach((enemy, index) => {
+                if (checkCollision(player, enemy)) {
+                    player.lives--;
+                    enemies.splice(index, 1);
+                }
+            });
+
+            // Check collisions with power-ups
+            powerUps.forEach((powerUp, index) => {
+                if (checkCollision(player, powerUp)) {
+                    player.score += 10;
+                    powerUps.splice(index, 1);
+                }
+            });
+
+            // Check collisions with bullets
+            bullets.forEach((bullet, index) => {
+                if (checkCollision(bullet, player)) {
+                    player.lives--;
+                    bullets.splice(index, 1);
+                }
+            });
+
+            // Check collisions with exit
+            if (checkCollision(player, exit)) {
+                player.score += 100;
+                player.lives = 3;
+                exit.x = 750;
+                exit.y = 550;
+            }
+        }
+
+        // Function to check collisions between two objects
+        function checkCollision(obj1, obj2) {
+            if (obj1.x + obj1.width > obj2.x &&
+                obj1.x < obj2.x + obj2.width &&
+                obj1.y + obj1.height > obj2.y &&
+                obj1.y < obj2.y + obj2.height) {
+                return true;
+            }
+            return false;
+        }
+
+        // Function to update the game state
+        function update() {
+            // Update player position
+            if (player.type === 'ball') {
+                if (keys.left) {
+                    player.x -= player.speed;
+                }
+                if (keys.right) {
+                    player.x += player.speed;
+                }
+                if (keys.up) {
+                    player.y -= player.speed;
+                }
+                if (keys.down) {
+                    player.y += player.speed;
+                }
+            }
+
+            // Update bullets
+            bullets.forEach((bullet, index) => {
+                if (bullet.image) {
+                    ctx.drawImage(new Image(), bullet.x, bullet.y, bullet.width, bullet.height);
+                } else {
+                    ctx.fillStyle = 'gray';
+                    ctx.fillRect(bullet.x, bullet.y, bullet.width, bullet.height);
+                }
+                bullet.y -= bullet.speed;
+                if (bullet.y < 0) {
+                    bullets.splice(index, 1);
+                }
+            });
+
+            // Update enemies
+            enemies.forEach((enemy, index) => {
+                if (enemy.image) {
+                    ctx.drawImage(new Image(), enemy.x, enemy.y, enemy.width, enemy.height);
+                } else {
+                    ctx.fillStyle = 'red';
+                    ctx.fillRect(enemy.x, enemy.y, enemy.width, enemy.height);
+                }
+                enemy.y += 2;
+                if (enemy.y > canvas.height) {
+                    enemies.splice(index, 1);
+                }
+            });
+
+            // Update power-ups
+            powerUps.forEach((powerUp, index) => {
+                if (powerUp.image) {
+                    ctx.drawImage(new Image(), powerUp.x, powerUp.y, powerUp.width, powerUp.height);
+                } else {
+                    ctx.fillStyle = 'green';
+                    ctx.fillRect(powerUp.x, powerUp.y, powerUp.width, powerUp.height);
+                }
+                powerUp.y += 2;
+                if (powerUp.y > canvas.height) {
+                    powerUps.splice(index, 1);
+                }
+            });
+
+            // Update exit
+            exit.y += 2;
+            if (exit.y > canvas.height) {
+                exit.y = 550;
+            }
+
+            // Check collisions
+            checkCollisions();
+
+            // Update score and lives
+            ctx.font = '24px Arial';
+            ctx.fillStyle = 'black';
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'top';
+            ctx.fillText('Score: ' + player.score, 10, 10);
+            ctx.fillText('Lives: ' + player.lives, 10, 40);
+
+            // Update game over text
+            if (player.lives <= 0) {
+                ctx.font = '48px Arial';
+                ctx.fillStyle = 'red';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('Game Over', canvas.width / 2, canvas.height / 2);
+            }
+
+            // Update timer
+            time--;
+            ctx.font = '24px Arial';
+            ctx.fillStyle = 'black';
+            ctx.textAlign = 'right';
+            ctx.textBaseline = 'top';
+            ctx.fillText('Time: ' + time, canvas.width - 10, 10);
+
+            // Check game over due to time
+            if (time <= 0) {
+                player.lives = 0;
+            }
+        }
+
+        // Function to handle keyboard input
+        var keys = {};
+        document.addEventListener('keydown', function(e) {
+            keys[e.key] = true;
+        });
+        document.addEventListener('keyup', function(e) {
+            keys[e.key] = false;
+        });
+
+        // Function to handle touch input
+        canvas.addEventListener('touchstart', function(e) {
+            var touch = e.touches[0];
+            var x = touch.clientX;
+            var y = touch.clientY;
+            if (x > player.x && x < player.x + player.width && y > player.y && y < player.y + player.height) {
+                player.type = 'ball';
+            }
+        });
+        canvas.addEventListener('touchmove', function(e) {
+            var touch = e.touches[0];
+            var x = touch.clientX;
+            var y = touch.clientY;
+            if (x > player.x && x < player.x + player.width && y > player.y && y < player.y + player.height) {
+                player.x = x - player.width / 2;
+                player.y = y - player.height / 2;
+            }
+        });
+        canvas.addEventListener('touchend', function(e) {
+            var touch = e.touches[0];
+            var x = touch.clientX;
+            var y = touch.clientY;
+            if (x > player.x && x < player.x + player.width && y > player.y && y < player.y + player.height) {
+                player.type = 'ball';
+            }
+        });
+
+        // Function to handle mouse input
+        canvas.addEventListener('mousedown', function(e) {
+            var x = e.clientX;
+            var y = e.clientY;
+            if (x > player.x &&
