@@ -19,5 +19,12 @@
     "concept": "In Echoes of Neon, players control a futuristic, neon-lit runner who must navigate through a series of increasingly challenging levels filled with obstacles and power-ups. By collecting and combining different neon fragments, players can unlock new abilities and enhance their runner's speed and agility.",
     "promo": "https://fadeleke246-tech0.github.io/Deathroll-Game-Factory-2.0/promo_echoes_of_neon.png",
     "game_url": "https://fadeleke246-tech0.github.io/Deathroll-Game-Factory-2.0/echoes_of_neon/index.html"
+  },
+  "skyball": {
+    "title": "Skyball",
+    "genre": "shooter / puzzle",
+    "concept": "In Skyball, players control a ball that can bounce and roll through a futuristic city, collecting power-ups and avoiding obstacles while trying to reach the exit before time runs out. The twist? The ball can transform into a variety of objects, each with its own abilities and weaknesses.",
+    "promo": "https://fadeleke246-tech0.github.io/Deathroll-Game-Factory-2.0/promo_skyball.png",
+    "game_url": "https://fadeleke246-tech0.github.io/Deathroll-Game-Factory-2.0/skyball/index.html"
   }
 }
