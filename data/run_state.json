@@ -1,10 +1,3 @@
 {
-  "phase": 7,
-  "current_game": {
-    "id": "skyball",
-    "title": "Skyball",
-    "genre": "shooter / puzzle",
-    "concept": "In Skyball, players control a ball that can bounce and roll through a futuristic city, collecting power-ups and avoiding obstacles while trying to reach the exit before time runs out. The twist? The ball can transform into a variety of objects, each with its own abilities and weaknesses.",
-    "inspiration": "Portal (for its puzzle-solving elements) and Super Mario Galaxy (for its creative level design)"
-  }
+  "phase": 1
 }
