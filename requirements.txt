@@ -2,3 +2,9 @@ google-genai
 groq
 pillow
 requests
+chromadb          # vector memory
+stable-baselines3 # AI playtesting
+pylint            # static analysis
+esprima           # JavaScript linting (for web games)
+flask             # feedback API
+flask-cors
