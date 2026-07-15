@@ -3,8 +3,8 @@ import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-import config
-import utils
+from scripts import config
+from scripts import utils
 
 def main():
     print("📦 PHASE 3: GREYBOX")
