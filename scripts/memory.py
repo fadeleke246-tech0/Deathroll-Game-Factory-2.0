@@ -4,6 +4,7 @@ user feedback, and successful prompts.
 """
 import json
 import uuid
+import time
 from pathlib import Path
 from typing import List, Dict, Optional
 
@@ -22,14 +23,13 @@ class GameMemory:
         )
 
     def store_game(self, game_data: Dict, success_score: float = 0.0) -> str:
-        """Store a completed game with metadata and a success score."""
         doc_id = game_data.get("id") or str(uuid.uuid4())
         document = json.dumps(game_data)
         metadata = {
             "title": game_data.get("title", ""),
             "genre": game_data.get("genre", ""),
             "success": success_score,
-            "timestamp": game_data.get("timestamp", ""),
+            "timestamp": game_data.get("timestamp", str(time.time())),
             "plays": game_data.get("plays", 0),
             "rating": game_data.get("rating", 0)
         }
@@ -41,7 +41,6 @@ class GameMemory:
         return doc_id
 
     def retrieve_best_practices(self, genre: str, limit: int = 5) -> List[Dict]:
-        """Retrieve top‑performing games of a given genre."""
         results = self.collection.query(
             query_texts=[genre],
             n_results=limit,
@@ -51,14 +50,12 @@ class GameMemory:
         return [json.loads(d) for d in docs if d]
 
     def update_success(self, game_id: str, new_score: float):
-        """Update the success score of an existing game."""
         self.collection.update(
             ids=[game_id],
             metadatas=[{"success": new_score}]
         )
 
     def get_high_performing_prompts(self, genre: str, top_k: int = 3) -> List[str]:
-        """Extract prompt patterns from high‑scoring games."""
         results = self.collection.query(
             query_texts=[genre],
             n_results=top_k,
@@ -73,5 +70,4 @@ class GameMemory:
                 prompts.append(data["prompt"])
         return prompts
 
-# Global instance for easy import
 memory = GameMemory()
