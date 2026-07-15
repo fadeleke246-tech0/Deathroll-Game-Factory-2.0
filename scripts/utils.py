@@ -21,6 +21,7 @@ GROQ_MODELS = ["llama-3.1-8b-instant", "llama-3.3-70b-versatile"]
 
 def call_llm(prompt: str, max_retries: int = config.MAX_RETRIES) -> str:
     errors = []
+    # Gemini
     if _gemini_client:
         for attempt in range(max_retries):
             try:
@@ -35,6 +36,7 @@ def call_llm(prompt: str, max_retries: int = config.MAX_RETRIES) -> str:
                 time.sleep(config.RETRY_DELAY_SECONDS)
     else:
         errors.append("Gemini API key missing")
+    # Groq
     if _groq_client:
         for model in GROQ_MODELS:
             for attempt in range(max_retries):
