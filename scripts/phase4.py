@@ -1,21 +1,42 @@
 #!/usr/bin/env python3
 import re
 import sys
+import time
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import config
-import utils
+from scripts import utils
+from scripts.memory import memory
+
+def build_advanced_prompt(asset: str, game: dict) -> str:
+    """Construct a rich prompt for Pollinations.ai."""
+    genre = game['genre']
+    title = game['title']
+    concept = game['concept']
+    # Extract mood and style from concept
+    mood = "dark and gritty" if "war" in genre or "shooter" in genre else "bright and colorful"
+    style = "pixel art" if genre in ["platformer", "puzzle"] else "photorealistic, 4K"
+    if asset == "background":
+        return f"{title} game {genre} background, {mood}, {style}, highly detailed, concept art"
+    elif asset == "player":
+        return f"Main character for {title}, {genre} game, {mood}, {style}, full body, dynamic pose"
+    elif asset == "enemy":
+        return f"Enemy for {title}, {genre} game, {mood}, {style}, menacing, detailed"
+    elif asset == "bullet":
+        return f"Projectile for {title}, {genre} game, glowing, {style}"
+    else:
+        return f"Game art for {title}, {asset}, {mood}, {style}"
 
 def main():
-    print("🎨 PHASE 4: ART")
+    print("🎨 PHASE 4: ART (advanced prompts)")
     state = utils.load_json(config.DATA_DIR / "run_state.json")
     if state.get("phase") != 4:
         print(f"Expected phase 4, got {state.get('phase')}. Skipping.")
         return
 
     game = state["current_game"]
-    utils.send_telegram_admin(f"🎨 Phase 4 started: generating images for '{game['title']}'...")
+    utils.send_telegram_admin(f"🎨 Phase 4 started: generating advanced images for '{game['title']}'...")
 
     game_dir = config.OUTPUT_DIR / game["id"]
     html_path = game_dir / "index.html"
@@ -31,15 +52,25 @@ def main():
 
     assets_dir = game_dir / "assets"
     assets_dir.mkdir(exist_ok=True)
-    for asset in assets:
-        prompt = f"Game art for {game['title']}, {asset}, pixel art"
-        out = assets_dir / f"{asset}.png"
-        utils.generate_image(prompt, out)
 
+    for asset in assets:
+        prompt = build_advanced_prompt(asset, game)
+        out = assets_dir / f"{asset}.png"
+        utils.send_telegram_admin(f"🎨 Generating {asset} with prompt: {prompt[:80]}...")
+        success = utils.generate_image(prompt, out)
+        if success:
+            utils.send_telegram_admin(f"✅ {asset} done")
+        else:
+            utils.send_telegram_admin(f"❌ {asset} failed, fallback used")
+        time.sleep(1)  # rate limit
+
+    # Promo image
     promo_path = config.DOCS_DIR / f"promo_{game['id']}.png"
-    utils.generate_image(f"Promotional image for {game['title']}", promo_path)
+    promo_prompt = f"Promotional banner for {game['title']}, {game['genre']} game, eye-catching, vibrant"
+    utils.generate_image(promo_prompt, promo_path)
     public_promo = f"{config.PUBLIC_BASE_URL}/promo_{game['id']}.png"
 
+    # Update portfolio
     portfolio = utils.load_json(config.DATA_DIR / "portfolio.json")
     portfolio[game["id"]] = {
         "title": game["title"],
