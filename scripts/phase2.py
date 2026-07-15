@@ -3,8 +3,8 @@ import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-import config
-import utils
+from scripts import config
+from scripts import utils
 
 def main():
     print("📐 PHASE 2: PLAN & CODE")
@@ -28,6 +28,8 @@ Output only the HTML code.
         code = utils.call_llm(prompt)
         if "```html" in code:
             code = code.split("```html")[1].split("```")[0]
+        elif "```" in code:
+            code = code.split("```")[1]
     except Exception as e:
         utils.send_telegram_admin(f"❌ Phase 2 failed: {e}")
         sys.exit(1)
