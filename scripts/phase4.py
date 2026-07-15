@@ -5,16 +5,14 @@ import time
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-import config
+from scripts import config
 from scripts import utils
 from scripts.memory import memory
 
 def build_advanced_prompt(asset: str, game: dict) -> str:
-    """Construct a rich prompt for Pollinations.ai."""
     genre = game['genre']
     title = game['title']
     concept = game['concept']
-    # Extract mood and style from concept
     mood = "dark and gritty" if "war" in genre or "shooter" in genre else "bright and colorful"
     style = "pixel art" if genre in ["platformer", "puzzle"] else "photorealistic, 4K"
     if asset == "background":
@@ -62,7 +60,7 @@ def main():
             utils.send_telegram_admin(f"✅ {asset} done")
         else:
             utils.send_telegram_admin(f"❌ {asset} failed, fallback used")
-        time.sleep(1)  # rate limit
+        time.sleep(1)
 
     # Promo image
     promo_path = config.DOCS_DIR / f"promo_{game['id']}.png"
@@ -70,7 +68,6 @@ def main():
     utils.generate_image(promo_prompt, promo_path)
     public_promo = f"{config.PUBLIC_BASE_URL}/promo_{game['id']}.png"
 
-    # Update portfolio
     portfolio = utils.load_json(config.DATA_DIR / "portfolio.json")
     portfolio[game["id"]] = {
         "title": game["title"],
