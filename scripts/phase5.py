@@ -5,19 +5,16 @@ import json
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-import config
+from scripts import config
 from scripts import utils
 
 def run_static_analysis(html_path: Path) -> bool:
-    """Run basic static checks (HTML, CSS, JS)."""
     content = html_path.read_text()
     errors = []
-    # Check for common JS errors
     if "eval(" in content:
         errors.append("Use of eval() detected")
     if "document.write" in content:
         errors.append("document.write used (bad practice)")
-    # Check for missing closing tags
     if content.count("<script") != content.count("</script>"):
         errors.append("Unbalanced script tags")
     if content.count("<div") != content.count("</div>"):
@@ -28,20 +25,15 @@ def run_static_analysis(html_path: Path) -> bool:
     return True
 
 def run_performance_test(html_path: Path) -> bool:
-    """Simulate performance via headless browser (playwright required)."""
-    # We'll use a simple approach: check file size and estimate load time
     size = html_path.stat().st_size
-    if size > 500 * 1024:  # >500KB
+    if size > 500 * 1024:
         utils.send_telegram_admin("⚠️ HTML file size >500KB, might load slow")
         return False
     return True
 
 def run_ai_playtest(html_path: Path) -> bool:
-    """Use a simple RL agent to play the game (stub – real implementation needs game integration)."""
-    # For now, we just simulate a playthrough by checking if the game has a start state
     content = html_path.read_text()
     if "Game Over" in content or "gameOver" in content:
-        # Assume game can end
         utils.send_telegram_admin("✅ AI playtest: game has a game-over condition")
         return True
     else:
@@ -63,7 +55,6 @@ def main():
         utils.send_telegram_admin("❌ Phase 5 failed: index.html missing.")
         sys.exit(1)
 
-    # Run all tests
     static_ok = run_static_analysis(html_path)
     perf_ok = run_performance_test(html_path)
     playtest_ok = run_ai_playtest(html_path)
