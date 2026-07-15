@@ -4,7 +4,7 @@ import requests
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-import config
+from scripts import config
 from scripts import utils
 
 def send_telegram_with_debug(bot_token: str, chat_id: str, text: str) -> bool:
@@ -29,34 +29,31 @@ def main():
     game_url = f"{config.PUBLIC_BASE_URL}/{game['id']}/index.html"
     msg = f"🎮 *New Game Released!*\n\n*{game['title']}*\n{game['concept']}\n\nPlay now: {game_url}"
 
-    # Test channel
+    # Channel
     if config.TELEGRAM_BOT_TOKEN and config.TELEGRAM_CHANNEL:
         print(f"Attempting to send to channel: {config.TELEGRAM_CHANNEL}")
         success = send_telegram_with_debug(config.TELEGRAM_BOT_TOKEN, config.TELEGRAM_CHANNEL, msg)
         if success:
             print("✅ Channel message sent.")
+            utils.send_telegram_admin("✅ Game announced in channel.")
         else:
-            print("❌ Channel message failed. Check channel ID and bot admin status.")
+            print("❌ Channel message failed.")
+            utils.send_telegram_admin("❌ Failed to post to channel (check bot admin).")
     else:
-        print("⚠️ Missing TELEGRAM_BOT_TOKEN or TELEGRAM_CHANNEL")
+        utils.send_telegram_admin("⚠️ Missing TELEGRAM_BOT_TOKEN or TELEGRAM_CHANNEL")
 
-    # Test admin DM
+    # Admin DM
     if config.TELEGRAM_BOT_TOKEN and config.TELEGRAM_ADMIN_CHAT_ID:
-        print(f"Attempting to send to admin: {config.TELEGRAM_ADMIN_CHAT_ID}")
-        success = send_telegram_with_debug(config.TELEGRAM_BOT_TOKEN, config.TELEGRAM_ADMIN_CHAT_ID, f"✅ Game '{game['title']}' completed. URL: {game_url}")
-        if success:
-            print("✅ Admin message sent.")
-        else:
-            print("❌ Admin message failed. Check TELEGRAM_ADMIN_CHAT_ID (must be numeric ID).")
-    else:
-        print("⚠️ Missing TELEGRAM_BOT_TOKEN or TELEGRAM_ADMIN_CHAT_ID")
+        admin_msg = f"✅ Game '{game['title']}' completed. URL: {game_url}"
+        send_telegram_with_debug(config.TELEGRAM_BOT_TOKEN, config.TELEGRAM_ADMIN_CHAT_ID, admin_msg)
 
-    # Update queue and reset state regardless of Telegram success
+    # Mark as completed
     queue = utils.load_json(config.DATA_DIR / "games_queue.json")
     if game["id"] in queue:
         queue[game["id"]]["status"] = "completed"
         utils.save_json(queue, config.DATA_DIR / "games_queue.json")
 
+    # Reset state for next game
     state["phase"] = 1
     state.pop("current_game", None)
     utils.save_json(state, config.DATA_DIR / "run_state.json")
