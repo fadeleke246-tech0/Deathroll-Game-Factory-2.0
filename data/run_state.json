@@ -1,10 +1,3 @@
 {
-  "phase": 7,
-  "current_game": {
-    "id": "echo_blast",
-    "title": "Echo Blast",
-    "genre": "racing",
-    "concept": "In Echo Blast, players control a spaceship that must navigate through a futuristic track while avoiding obstacles and collecting power-ups. The twist: the player's ship leaves a sonic blast trail that attracts or repels other ships on the track, creating a dynamic and unpredictable racing experience.",
-    "inspiration": "F-Zero (Nintendo)"
-  }
+  "phase": 1
 }
