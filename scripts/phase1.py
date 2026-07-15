@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 import sys
+import time
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-import config
+from scripts import config
 from scripts import utils
 from scripts.memory import memory
 
@@ -22,8 +23,7 @@ def main():
 
     utils.send_telegram_admin("📊 Phase 1 started: researching game idea with memory...")
 
-    # Retrieve best practices for common genres (if any)
-    best_practices = memory.retrieve_best_practices("shooter", limit=3)  # default fallback
+    best_practices = memory.retrieve_best_practices("shooter", limit=3)
     inspiration_text = ""
     if best_practices:
         inspiration_text = "\nPast successful games:\n" + "\n".join(
@@ -53,7 +53,6 @@ Output JSON:
     msg = f"✅ Phase 1 complete\n\nTitle: {idea['title']}\nGenre: {idea['genre']}\nConcept: {idea['concept']}\nInspiration: {idea.get('inspiration', '')}"
     utils.send_telegram_admin(msg)
 
-    # Store initial idea in memory (success=0 initially)
     memory.store_game({
         "id": game_id,
         "title": idea['title'],
